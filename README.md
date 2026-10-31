@@ -93,8 +93,8 @@ remote diagnostics. It also reports whether a DNS telemetry blocker is active.
 If anything is on, the launcher shows what it found before the first session.
 It does not change TV settings for you.
 
-The notice explains the anonymity goal, the RAM-only rule, the 30-second
-timeout, the one-shot toggle, Tor routing, and the ARM64 limitation. Both dialogs store their
+The notice explains the RAM-only overlay, the 30-second timeout, the one-shot
+toggle, the scoped Tor route, and the ARM64 limitation. Both dialogs store their
 acknowledgement on the TV, so they appear once per install.
 
 ![First-run notice](docs/tails-notice.png)
