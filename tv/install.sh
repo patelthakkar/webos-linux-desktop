@@ -26,6 +26,6 @@ if (( available - size < 102400 )); then
   exit 1
 fi
 
-tar -cf - tv/control.sh tv/namespace.sh artifacts/rootfs.squashfs |
-  ssh "${ssh_opts[@]}" "$REMOTE" "set -eu; cd '$BASE'; tar -xf -; echo '$expected  artifacts/rootfs.squashfs' | sha256sum -c -; mv artifacts/rootfs.squashfs rootfs.squashfs; mv tv/control.sh tv/namespace.sh .; rmdir artifacts tv; chmod 755 control.sh namespace.sh"
+tar -cf - tv/control.sh tv/namespace.sh tv/input-devices.sh artifacts/rootfs.squashfs |
+  ssh "${ssh_opts[@]}" "$REMOTE" "set -eu; cd '$BASE'; tar -xf -; echo '$expected  artifacts/rootfs.squashfs' | sha256sum -c -; mv artifacts/rootfs.squashfs rootfs.squashfs; mv tv/control.sh tv/namespace.sh tv/input-devices.sh .; rmdir artifacts tv; chmod 755 control.sh namespace.sh input-devices.sh"
 ssh "${ssh_opts[@]}" "$REMOTE" "echo '$expected  $BASE/rootfs.squashfs' | sha256sum -c -"

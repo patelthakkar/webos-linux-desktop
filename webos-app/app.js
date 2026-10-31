@@ -1,9 +1,17 @@
 'use strict';
 
 const BASE = '/var/lib/webosbrew/linux-desktop';
-const SETUP_URL = 'https://github.com/patelthakkar/webos-linux-desktop#install';
+const GITHUB_SOURCE = 'https://github.com/patelthakkar/webos-linux-desktop';
+const SETUP_URL = `${GITHUB_SOURCE}#install`;
 const PROBE = `base=${BASE}; if [ -x "$base/control.sh" ]; then "$base/control.sh" status; else echo missing; fi`;
 const PREVIEW = new URLSearchParams(location.search).get('preview');
+const PREVIEW_INCOGNITO = new URLSearchParams(location.search).get('incognito') === '1';
+const PREVIEW_FRESH = new URLSearchParams(location.search).get('fresh') === '1';
+const PREVIEW_SETTINGS = new URLSearchParams(location.search).get('settings') === '1';
+const APP_VERSION = '1.1.0';
+const SETTINGS_KEY = 'linuxdesktop.settings.v2';
+const STATS_MS = 6000;
+const DEFAULT_SETTINGS = { stats: true, incognito: false, freshStart: false };
 
 const $ = (id) => document.getElementById(id);
 const appShell = document.querySelector('.app');
@@ -11,6 +19,11 @@ const menu = $('menu');
 const screen = $('screen');
 const logs = $('logs');
 const confirmBox = $('confirm');
+const settingsPanel = $('settings');
+const settingsScrim = $('settings-scrim');
+const settingsOpen = $('settings-open');
+const screenSettings = $('screen-settings');
+const settingsClose = $('settings-close');
 const log = $('log');
 const primary = $('primary');
 const secondary = $('secondary');
@@ -20,9 +33,22 @@ const stateText = $('state-text');
 const headline = $('headline');
 const lede = $('lede');
 const hint = $('hint');
+const modeBadge = $('mode-badge');
+const freshBadge = $('fresh-badge');
+const screenMode = $('screen-mode');
+const factMode = $('fact-mode');
+const persistNote = $('persist-note');
+const deviceHint = $('device-hint');
+const aboutRuntime = $('about-runtime');
+const confirmTitle = $('confirm-title');
+const confirmCopy = $('confirm-copy');
+const confirmExtra = $('confirm-extra');
+const confirmStop = $('confirm-stop');
+const cancelStop = $('cancel-stop');
 
 let state = { name: PREVIEW || 'checking', detail: '', hint: '' };
 let previewState = PREVIEW;
+let previewMode = PREVIEW_INCOGNITO ? 'incognito' : 'persistent';
 let busy = false;
 let opening = false;
 let startDeadline = 0;
@@ -30,6 +56,13 @@ let startTimer = null;
 let screenTimer = null;
 let screenMisses = 0;
 let lastFocus = null;
+let lastSettingsFocus = null;
+let pendingConfirm = 'stop';
+let stats = null;
+let inputs = null;
+let statsInFlight = false;
+let inputsInFlight = false;
+let settings = loadSettings();
 
 const config = {
   checking: {
@@ -44,7 +77,7 @@ const config = {
     line: 'Session stopped',
     headline: 'Desktop\nstopped.',
     lede: 'Start the session to open XFCE on this TV.',
-    hint: 'USB keyboard and mouse recommended. Files persist between sessions.',
+    hint: 'USB and Bluetooth keyboards work best. Files persist between sessions.',
     primary: { label: 'Start desktop', action: 'start' },
     secondary: { label: 'Session log', action: 'logs' },
   },
@@ -60,7 +93,7 @@ const config = {
     line: 'Session running',
     headline: 'Desktop\nrunning.',
     lede: 'Open the session, or stop it to release memory.',
-    hint: 'Closing this app leaves the session running. Use Stop desktop to free memory.',
+    hint: 'Closing this app leaves the session running until you stop it.',
     primary: { label: 'Open desktop', action: 'open' },
     secondary: { label: 'Stop desktop', action: 'stop', danger: true },
     link: true,
@@ -90,6 +123,27 @@ const config = {
     secondary: { label: 'Try again', action: 'retry' },
   },
 };
+
+function loadSettings() {
+  const next = { ...DEFAULT_SETTINGS };
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const stored = JSON.parse(raw);
+      for (const key of Object.keys(DEFAULT_SETTINGS)) {
+        if (typeof stored[key] === 'boolean') next[key] = stored[key];
+      }
+    }
+  } catch (_) {}
+  if (PREVIEW_FRESH) next.freshStart = true;
+  return next;
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (_) {}
+}
 
 function bridgeCall(uri, parameters, timeout = 15000) {
   return new Promise((resolve, reject) => {
@@ -136,27 +190,63 @@ function previewLog() {
   ].join('\n');
 }
 
+function previewStats() {
+  return JSON.stringify({
+    runtimeVersion: APP_VERSION,
+    load: '0.42',
+    memTotal: 1745840,
+    memUsed: 1120000,
+    varFree: 198348,
+    uptime: 40320,
+    mode: previewState === 'running' ? previewMode : 'persistent',
+  });
+}
+
+function previewInputs() {
+  return [
+    'usb_keyboard=1',
+    'usb_keyboard_name=Logitech USB Keyboard',
+    'usb_pointer=1',
+    'usb_pointer_name=Logitech USB Optical Mouse',
+    'bt_keyboard=0',
+    'bt_keyboard_name=',
+    'bt_pointer=0',
+    'bt_pointer_name=',
+  ].join('\n');
+}
+
 async function command(action) {
   if (PREVIEW) {
     if (action === 'status') return previewState || 'missing';
     if (action === 'logs') return previewLog();
+    if (action === 'stats') return previewStats();
+    if (action === 'inputs') return previewInputs();
     if (action === 'start') {
+      previewMode = settings.incognito ? 'incognito' : 'persistent';
       previewState = 'starting';
       setTimeout(() => {
         previewState = 'running';
-        if (PREVIEW) probe();
+        if (PREVIEW) {
+          probe();
+          loadDashboard();
+        }
       }, 1400);
       return 'starting';
     }
     if (action === 'stop') {
       previewState = 'stopped';
+      previewMode = 'persistent';
       return 'stopped';
     }
   }
   const commands = {
     status: PROBE,
-    start: `${BASE}/control.sh start`,
+    start: settings.incognito
+      ? `INCOGNITO=1 ${BASE}/control.sh start`
+      : `${BASE}/control.sh start`,
     stop: `${BASE}/control.sh stop`,
+    stats: `${BASE}/control.sh stats`,
+    inputs: `${BASE}/control.sh inputs`,
     logs: `${BASE}/control.sh logs`,
   };
   return bridgeCall('luna://org.webosbrew.hbchannel.service/exec', { command: commands[action] });
@@ -168,13 +258,151 @@ function stateFromOutput(output) {
   return { name: 'error', detail: line || 'No status returned.' };
 }
 
+function formatKbShort(value) {
+  const kb = Number(value);
+  if (!Number.isFinite(kb) || kb <= 0) return '—';
+  const mb = kb / 1024;
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1)}G`;
+  return `${Math.round(mb)}M`;
+}
+
+function formatUptime(value) {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return '—';
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
+function setStat(name, value, title) {
+  for (const element of document.querySelectorAll(`[data-stat="${name}"]`)) {
+    element.textContent = value;
+    element.title = title;
+  }
+}
+
+function applyStats(data) {
+  const used = data ? formatKbShort(data.memUsed) : '';
+  const total = data ? formatKbShort(data.memTotal) : '';
+  const ram = data
+    ? (used.endsWith('G') && total.endsWith('G') ? `${used.slice(0, -1)}/${total}` : `${used}/${total}`)
+    : '—';
+  const varFree = data ? formatKbShort(data.varFree) : '—';
+  const load = data ? String(data.load || '—') : '—';
+  const uptime = data ? formatUptime(data.uptime) : '—';
+  setStat('load', load, data ? '1-minute load average on the TV.' : 'Statistics unavailable');
+  setStat('ram', ram, data ? `RAM used: ${formatKbShort(data.memUsed)} of ${formatKbShort(data.memTotal)}.` : 'Statistics unavailable');
+  setStat('var', varFree, data ? `/var free space: ${formatKbShort(data.varFree)}.` : 'Statistics unavailable');
+  setStat('uptime', uptime, data ? 'TV uptime.' : 'Statistics unavailable');
+  aboutRuntime.textContent = data && data.runtimeVersion ? `Runtime ${data.runtimeVersion}` : 'Runtime unavailable';
+  updateModeUI();
+  updateFreshUI();
+}
+
+function parseInputs(text) {
+  const data = {};
+  for (const line of String(text).split('\n')) {
+    const split = line.indexOf('=');
+    if (split < 1) continue;
+    data[line.slice(0, split).trim()] = line.slice(split + 1);
+  }
+  return data;
+}
+
+function applyInputs(data) {
+  const rows = {
+    'usb-keyboard': ['usb_keyboard', 'usb_keyboard_name'],
+    'usb-pointer': ['usb_pointer', 'usb_pointer_name'],
+    'bt-keyboard': ['bt_keyboard', 'bt_keyboard_name'],
+    'bt-pointer': ['bt_pointer', 'bt_pointer_name'],
+  };
+  let any = false;
+  for (const [rowName, [flag, nameKey]] of Object.entries(rows)) {
+    const row = document.querySelector(`[data-device="${rowName}"]`);
+    if (!row) continue;
+    const element = row.querySelector('.device-state');
+    if (!data) {
+      row.dataset.state = 'unknown';
+      element.textContent = 'Unknown';
+      element.title = '';
+      continue;
+    }
+    const on = data[flag] === '1';
+    const deviceName = String(data[nameKey] || '').trim();
+    row.dataset.state = on ? 'on' : 'off';
+    if (on) {
+      element.textContent = deviceName ? `Detected · ${deviceName}` : 'Detected';
+      element.title = deviceName;
+      any = true;
+    } else {
+      element.textContent = 'Not connected';
+      element.title = '';
+    }
+  }
+  deviceHint.hidden = any || !data;
+}
+
+function updateIncognitoHint() {
+  const incognitoHint = $('incognito-hint');
+  if (!settings.incognito) {
+    incognitoHint.hidden = true;
+    return;
+  }
+  const active = ['running', 'starting'].includes(state.name);
+  const current = active && stats && stats.mode === 'incognito';
+  incognitoHint.hidden = false;
+  if (active && current) {
+    incognitoHint.textContent = 'This session is in RAM. Stop ends it and erases its files.';
+  } else if (active) {
+    incognitoHint.textContent = 'Applies the next time the desktop starts. Stop the current session first.';
+  } else {
+    incognitoHint.textContent = 'The next session runs in RAM and is erased when you stop it.';
+  }
+}
+
+function updateFreshUI() {
+  freshBadge.hidden = !settings.freshStart;
+  const freshHint = $('fresh-hint');
+  if (!settings.freshStart) {
+    freshHint.hidden = true;
+    return;
+  }
+  freshHint.hidden = false;
+  if (state.name === 'running') {
+    freshHint.textContent = 'Opening the desktop closes this session and starts clean.';
+  } else if (state.name === 'starting') {
+    freshHint.textContent = 'The next open starts clean.';
+  } else {
+    freshHint.textContent = 'The next start is clean.';
+  }
+}
+
+function updateModeUI() {
+  const active = ['running', 'starting'].includes(state.name);
+  const incognito = active && stats && stats.mode === 'incognito';
+  modeBadge.hidden = !incognito;
+  screenMode.hidden = !incognito;
+  factMode.textContent = incognito ? 'Incognito' : 'Persistent';
+  factMode.classList.toggle('is-incognito', Boolean(incognito));
+  persistNote.textContent = incognito ? 'Incognito · RAM only' : 'Files persist';
+  persistNote.classList.toggle('is-incognito', Boolean(incognito));
+  updateIncognitoHint();
+}
+
 function render() {
   const current = config[state.name] || config.error;
   document.body.dataset.state = state.name;
   stateText.textContent = current.line;
   headline.textContent = current.headline;
   lede.textContent = state.detail || current.lede;
-  hint.textContent = state.hint || current.hint;
+  let hintText = state.hint || current.hint;
+  if (state.name === 'running' && stats && stats.mode === 'incognito') {
+    hintText = 'Closing this app leaves the incognito session running in RAM until you stop it.';
+  }
+  hint.textContent = hintText;
 
   const action = current.primary || {};
   primary.textContent = action.label || 'Please wait';
@@ -182,6 +410,11 @@ function render() {
   primary.hidden = false;
   primary.dataset.action = action.action || '';
   primary.className = 'btn btn-primary';
+  if (state.name === 'running' && settings.freshStart) {
+    primary.textContent = 'Start fresh';
+    primary.disabled = false;
+    primary.dataset.action = 'fresh';
+  }
 
   if (current.secondary) {
     secondary.hidden = false;
@@ -205,16 +438,19 @@ function render() {
     }
   }
 
-  if (!screen.hidden || !logs.hidden || !confirmBox.hidden) return;
+  updateModeUI();
+  updateFreshUI();
+
+  if (!screen.hidden || !logs.hidden || !confirmBox.hidden || !settingsPanel.hidden) return;
   const active = document.activeElement;
-  if (!menu.contains(active) || active.disabled || active.hidden) {
+  if (!(menu.contains(active) || active === settingsOpen) || active.disabled || active.hidden) {
     const target = primary.hidden || primary.disabled ? secondary : primary;
     if (target && !target.hidden && !target.disabled) target.focus();
   }
 }
 
-function setState(name, detail = '', hint = '') {
-  state = { name, detail, hint };
+function setState(name, detail = '', hintText = '') {
+  state = { name, detail, hint: hintText };
   render();
 }
 
@@ -279,6 +515,7 @@ function watchStart() {
         opening = false;
         startTimer = null;
         setState('running');
+        loadDashboard();
         showDesktop();
         return;
       }
@@ -301,8 +538,8 @@ async function startDesktop() {
   if (busy) return;
   busy = true;
   opening = true;
+  setState('starting', '', settings.incognito ? 'Starting an incognito session in RAM.' : '');
   startDeadline = Date.now() + 60000;
-  setState('starting');
   try {
     await command('start');
   } catch (error) {
@@ -312,25 +549,8 @@ async function startDesktop() {
     return;
   }
   busy = false;
+  loadDashboard();
   watchStart();
-}
-
-async function stopDesktop() {
-  closeStopConfirm();
-  if (busy) return;
-  busy = true;
-  opening = false;
-  stopStartPoll();
-  setState('stopping');
-  try {
-    await command('stop');
-    hideScreen();
-    setState('stopped');
-  } catch (error) {
-    setState('error', cleanError(error));
-  } finally {
-    busy = false;
-  }
 }
 
 function showDesktop() {
@@ -344,6 +564,8 @@ function showDesktop() {
   }
   $('controls').focus();
   screenMisses = 0;
+  loadStats();
+  updateModeUI();
   clearInterval(screenTimer);
   screenTimer = setInterval(async () => {
     if (screen.hidden) return;
@@ -357,6 +579,7 @@ function showDesktop() {
       if (screenMisses >= 2) {
         hideScreen();
         setState('stopped', 'The desktop session ended. Start it again when you are ready.');
+        loadDashboard();
       }
     } catch (_) {
       screenMisses += 1;
@@ -370,7 +593,31 @@ function hideScreen() {
   $('desktop').removeAttribute('src');
   clearInterval(screenTimer);
   screenTimer = null;
+  updateModeUI();
+  loadDashboard();
   if (state.name === 'running') setState('running');
+}
+
+async function stopDesktop() {
+  closeStopConfirm();
+  if (busy) return false;
+  busy = true;
+  opening = false;
+  stopStartPoll();
+  setState('stopping');
+  try {
+    await command('stop');
+    if (stats) stats.mode = 'persistent';
+    hideScreen();
+    setState('stopped');
+    loadDashboard();
+    return true;
+  } catch (error) {
+    setState('error', cleanError(error));
+    return false;
+  } finally {
+    busy = false;
+  }
 }
 
 async function loadLogs() {
@@ -380,6 +627,42 @@ async function loadLogs() {
   } catch (error) {
     log.textContent = cleanError(error);
   }
+}
+
+async function openExternal(url) {
+  if (PREVIEW) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  try {
+    await bridgeCall('luna://com.webos.applicationManager/launch', {
+      id: 'com.webos.app.browser',
+      params: { target: url },
+    }, 8000);
+  } catch (_) {}
+}
+
+function focusables(view) {
+  const items = Array.from(view.querySelectorAll('[data-focusable]'));
+  if (view === menu) {
+    const trigger = $('settings-open');
+    if (trigger && !trigger.hidden && !trigger.disabled) items.push(trigger);
+  }
+  return items.filter((element) => (
+    !element.hidden && !element.disabled && element.getClientRects().length > 0
+  ));
+}
+
+function moveFocus(direction) {
+  const scope = !settingsPanel.hidden ? settingsPanel
+    : !confirmBox.hidden ? confirmBox
+      : !logs.hidden ? logs
+        : !screen.hidden ? screen : menu;
+  const items = focusables(scope);
+  if (!items.length) return;
+  const index = items.indexOf(document.activeElement);
+  const next = (index + direction + items.length) % items.length;
+  items[next].focus();
 }
 
 async function openLogs() {
@@ -394,78 +677,168 @@ function closeLogs() {
   logs.hidden = true;
   menu.hidden = false;
   probe();
+  loadDashboard();
   const target = focusables(menu)[0];
   if (target) target.focus();
 }
 
-function openStopConfirm() {
-  if (!confirmBox.hidden) return;
+function openStopConfirm(reason = 'stop') {
+  if (!confirmBox.hidden || !settingsPanel.hidden) return;
+  pendingConfirm = reason;
+  const fresh = reason === 'fresh';
+  const incognito = Boolean(stats && stats.mode === 'incognito' && ['running', 'starting'].includes(state.name));
+  confirmTitle.textContent = fresh ? 'Start fresh?' : 'Stop the desktop?';
+  confirmCopy.textContent = fresh
+    ? 'The running desktop will close, then a clean session will start. Open applications will lose unsaved work.'
+    : 'Open applications will close. Save your work before continuing.';
+  const extra = [];
+  if (fresh) extra.push('A clean session starts after the current one closes.');
+  if (incognito) extra.push('This session is in RAM. Stopping it erases its files and changes.');
+  confirmExtra.textContent = extra.join(' ');
+  confirmExtra.hidden = !extra.length;
+  confirmStop.textContent = fresh ? 'Start fresh' : 'Stop desktop';
+  confirmStop.className = fresh ? 'btn btn-primary' : 'btn btn-danger';
+  cancelStop.className = fresh ? 'btn btn-secondary' : 'btn btn-primary';
   lastFocus = document.activeElement;
   confirmBox.hidden = false;
   appShell.inert = true;
-  $('cancel-stop').focus();
+  cancelStop.focus();
 }
 
 function closeStopConfirm() {
   if (confirmBox.hidden) return;
   confirmBox.hidden = true;
   appShell.inert = false;
+  pendingConfirm = 'stop';
   const target = lastFocus && menu.contains(lastFocus) ? lastFocus : secondary;
   if (target && !target.hidden && !target.disabled) target.focus();
 }
 
-async function openSetupGuide() {
-  if (PREVIEW) {
-    window.open(SETUP_URL, '_blank', 'noopener');
+async function confirmStopAction() {
+  const reason = pendingConfirm;
+  closeStopConfirm();
+  if (reason === 'fresh') {
+    const stopped = await stopDesktop();
+    if (stopped && state.name === 'stopped') startDesktop();
     return;
   }
-  try {
-    await bridgeCall('luna://com.webos.applicationManager/launch', {
-      id: 'com.webos.app.browser',
-      params: { target: SETUP_URL },
-    }, 8000);
-  } catch (_) {
-    state.hint = `Open this on a computer: ${SETUP_URL}`;
-    render();
+  stopDesktop();
+}
+
+function openSettings() {
+  if (!settingsPanel.hidden) return;
+  lastSettingsFocus = document.activeElement;
+  appShell.inert = true;
+  if (!screen.hidden) screen.inert = true;
+  if (!logs.hidden) logs.inert = true;
+  settingsOpen.setAttribute('aria-expanded', 'true');
+  screenSettings.setAttribute('aria-expanded', 'true');
+  settingsPanel.hidden = false;
+  settingsScrim.hidden = false;
+  if (!stats) loadStats();
+  if (!inputs) loadInputs();
+  updateIncognitoHint();
+  updateFreshUI();
+  const first = settingsPanel.querySelector('[data-setting]') || focusables(settingsPanel)[0];
+  if (first) first.focus();
+}
+
+function closeSettings() {
+  if (settingsPanel.hidden) return;
+  settingsPanel.hidden = true;
+  settingsScrim.hidden = true;
+  appShell.inert = false;
+  screen.inert = false;
+  logs.inert = false;
+  settingsOpen.setAttribute('aria-expanded', 'false');
+  screenSettings.setAttribute('aria-expanded', 'false');
+  const target = lastSettingsFocus && !lastSettingsFocus.hidden
+    && !lastSettingsFocus.disabled
+    && lastSettingsFocus.getClientRects().length > 0
+    ? lastSettingsFocus
+    : (!screen.hidden ? screenSettings : settingsOpen);
+  if (target) target.focus();
+  loadDashboard();
+}
+
+function toggleSetting(button) {
+  const key = button.dataset.setting;
+  if (!(key in DEFAULT_SETTINGS)) return;
+  settings[key] = !settings[key];
+  saveSettings();
+  applySettings();
+  render();
+}
+
+function applySettings() {
+  document.body.classList.toggle('stats-hidden', !settings.stats);
+  for (const button of document.querySelectorAll('[data-setting]')) {
+    const key = button.dataset.setting;
+    button.setAttribute('aria-checked', String(Boolean(settings[key])));
   }
-}
-
-function focusables(view) {
-  return Array.from(view.querySelectorAll('[data-focusable]')).filter((element) => (
-    !element.hidden && !element.disabled && element.getClientRects().length > 0
-  ));
-}
-
-function moveFocus(direction) {
-  const scope = !confirmBox.hidden ? confirmBox : !logs.hidden ? logs : !screen.hidden ? screen : menu;
-  const items = focusables(scope);
-  if (!items.length) return;
-  const index = items.indexOf(document.activeElement);
-  const next = (index + direction + items.length) % items.length;
-  items[next].focus();
+  updateModeUI();
+  updateFreshUI();
 }
 
 function back() {
+  if (!settingsPanel.hidden) { closeSettings(); return; }
   if (!confirmBox.hidden) { closeStopConfirm(); return; }
   if (!logs.hidden) { closeLogs(); return; }
   if (!screen.hidden) { hideScreen(); return; }
-  if (!PREVIEW && window.webOS && window.webOS.platformBack) {
-    window.webOS.platformBack();
+  if (!PREVIEW && window.webOS && window.webOS.platformBack) window.webOS.platformBack();
+}
+
+async function loadStats() {
+  if (statsInFlight) return;
+  statsInFlight = true;
+  try {
+    const raw = await command('stats');
+    stats = JSON.parse(raw);
+    applyStats(stats);
+  } catch (_) {
+    stats = null;
+    applyStats(null);
+  } finally {
+    statsInFlight = false;
   }
+}
+
+async function loadInputs() {
+  if (inputsInFlight) return;
+  inputsInFlight = true;
+  try {
+    inputs = parseInputs(await command('inputs'));
+    applyInputs(inputs);
+  } catch (_) {
+    inputs = null;
+    applyInputs(null);
+  } finally {
+    inputsInFlight = false;
+  }
+}
+
+function loadDashboard() {
+  loadStats();
+  loadInputs();
+}
+
+function menuFocused() {
+  return !menu.hidden && screen.hidden && logs.hidden && confirmBox.hidden && settingsPanel.hidden;
 }
 
 primary.addEventListener('click', () => {
   const action = primary.dataset.action;
   if (action === 'start') startDesktop();
   else if (action === 'open') showDesktop();
-  else if (action === 'setup') openSetupGuide();
+  else if (action === 'fresh') openStopConfirm('fresh');
+  else if (action === 'setup') openExternal(SETUP_URL);
   else if (action === 'logs') openLogs();
 });
 
 secondary.addEventListener('click', () => {
   const action = secondary.dataset.action;
   if (action === 'logs') openLogs();
-  else if (action === 'stop') openStopConfirm();
+  else if (action === 'stop') openStopConfirm('stop');
   else if (action === 'check') probe();
   else if (action === 'retry') startDesktop();
 });
@@ -474,8 +847,17 @@ logLink.addEventListener('click', openLogs);
 $('controls').onclick = () => { hideScreen(); probe(); };
 $('close-log').onclick = closeLogs;
 $('refresh-log').onclick = loadLogs;
-$('cancel-stop').onclick = closeStopConfirm;
-$('confirm-stop').onclick = stopDesktop;
+cancelStop.onclick = closeStopConfirm;
+confirmStop.onclick = confirmStopAction;
+$('devices-refresh').onclick = loadDashboard;
+settingsOpen.addEventListener('click', openSettings);
+screenSettings.addEventListener('click', openSettings);
+settingsClose.addEventListener('click', closeSettings);
+settingsScrim.addEventListener('click', closeSettings);
+$('about-source').addEventListener('click', () => openExternal(GITHUB_SOURCE));
+for (const button of document.querySelectorAll('[data-setting]')) {
+  button.addEventListener('click', () => toggleSetting(button));
+}
 
 document.addEventListener('keydown', (event) => {
   if (event.keyCode === 461 || event.key === 'Escape') {
@@ -483,8 +865,9 @@ document.addEventListener('keydown', (event) => {
     back();
     return;
   }
-  if (event.key === 'Tab' && !confirmBox.hidden) {
-    const items = focusables(confirmBox);
+  if (event.key === 'Tab' && (!settingsPanel.hidden || !confirmBox.hidden)) {
+    const scope = !settingsPanel.hidden ? settingsPanel : confirmBox;
+    const items = focusables(scope);
     if (!items.length) return;
     const index = items.indexOf(document.activeElement);
     const next = (index + (event.shiftKey ? -1 : 1) + items.length) % items.length;
@@ -504,22 +887,38 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && (screen.hidden && logs.hidden && confirmBox.hidden) && !opening) probe();
+  if (document.hidden) return;
+  if (menuFocused()) {
+    loadDashboard();
+    if (!opening) probe();
+  } else if (!screen.hidden) {
+    loadStats();
+  }
 });
+
+applySettings();
+$('about-launcher').textContent = `Launcher ${APP_VERSION}`;
 
 if (PREVIEW) {
   if (state.name === 'error') state.detail = 'The display server exited before it was ready.';
   setState(state.name, state.detail);
+  loadDashboard();
+  if (PREVIEW_SETTINGS) openSettings();
 } else {
   setState('checking');
   probe();
+  loadDashboard();
 }
+
+setInterval(() => {
+  if (document.hidden || !menuFocused()) return;
+  loadDashboard();
+}, STATS_MS);
 
 if (!PREVIEW) {
   setInterval(() => {
     if (document.hidden || opening || busy) return;
-    if (!confirmBox.hidden || !logs.hidden) return;
-    if (!screen.hidden) return;
+    if (!menuFocused()) return;
     probe();
   }, 8000);
 }

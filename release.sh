@@ -14,7 +14,7 @@ fi
 rm -rf dist
 mkdir -p dist/runtime
 cp artifacts/rootfs.squashfs artifacts/rootfs.squashfs.sha256 dist/runtime/
-cp tv/control.sh tv/namespace.sh THIRD-PARTY.md dist/runtime/
+cp tv/control.sh tv/namespace.sh tv/input-devices.sh THIRD-PARTY.md dist/runtime/
 tar -cf dist/linux-desktop-runtime.tar -C dist/runtime .
 rm -rf dist/runtime
 

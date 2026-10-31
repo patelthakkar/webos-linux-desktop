@@ -1,0 +1,103 @@
+I: Bus=0003 Vendor=0001 Product=0001 Version=0004
+N: Name="LGE RCU"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input0
+U: Uniq=
+H: Handlers=kbd event0 
+B: PROP=0
+B: EV=7
+B: KEY=ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe
+B: REL=0
+
+I: Bus=0006 Vendor=0001 Product=0001 Version=0004
+N: Name="CHECK INPUT"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input1
+U: Uniq=
+H: Handlers=kbd event1 
+B: PROP=0
+B: EV=3
+B: KEY=ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="LGE M-RCU - Builtin [0]"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input2
+U: Uniq=
+H: Handlers=kbd js0 event2 
+B: PROP=0
+B: EV=f
+B: KEY=7f0350 fc00 0 dff 65f87fbf cdffffff 80bee01e f0030004 88000000 40 0 7fffff ffffffff 20206003 e9081e28 0 0 0 0 0 0 0 0 0 0 1000 100fc000 2001440 0 0 70000 20000 2018000 4180 10801 9e1680 0 0 10000ffc
+B: REL=100
+B: ABS=3
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="LGE M-RCU - Builtin [1]"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input3
+U: Uniq=
+H: Handlers=kbd js1 event3 
+B: PROP=0
+B: EV=f
+B: KEY=7f0350 fc00 0 dff 65f87fbf cdffffff 80bee01e f0030004 88000000 40 0 7fffff ffffffff 20206003 e9081e28 0 0 0 0 0 0 0 0 0 0 1000 100fc000 2001440 0 0 70000 20000 2018000 4180 10801 9e1680 0 0 10000ffc
+B: REL=100
+B: ABS=3
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="LGE M-RCU - Builtin [2]"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input4
+U: Uniq=
+H: Handlers=kbd js2 event4 
+B: PROP=0
+B: EV=f
+B: KEY=7f0350 fc00 0 dff 65f87fbf cdffffff 80bee01e f0030004 88000000 40 0 7fffff ffffffff 20206003 e9081e28 0 0 0 0 0 0 0 0 0 0 1000 100fc000 2001440 0 0 70000 20000 2018000 4180 10801 9e1680 0 0 10000ffc
+B: REL=100
+B: ABS=3
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="LGE TONE+ - Builtin [3]"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input5
+U: Uniq=
+H: Handlers=kbd js3 event5 
+B: PROP=0
+B: EV=f
+B: KEY=7f0350 fc00 0 dff 65f87fbf cdffffff 80bee01e f0030004 88000000 40 0 7fffff ffffffff 20206003 e9081e28 0 0 0 0 0 0 0 0 0 0 1000 100fc000 2001440 0 0 70000 20000 2018000 4180 10801 9e1680 0 0 10000ffc
+B: REL=100
+B: ABS=3
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="LGE W-RCU - Builtin [5]"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input6
+U: Uniq=
+H: Handlers=kbd js4 event6 
+B: PROP=0
+B: EV=f
+B: KEY=7f0350 fc00 0 dff 65f87fbf cdffffff 80bee01e f0030004 88000000 40 0 7fffff ffffffff 20206003 e9081e28 0 0 0 0 0 0 0 0 0 0 1000 100fc000 2001440 0 0 70000 20000 2018000 4180 10801 9e1680 0 0 10000ffc
+B: REL=100
+B: ABS=3
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="LGE Simple Premium"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input7
+U: Uniq=
+H: Handlers=kbd js5 event7 
+B: PROP=0
+B: EV=f
+B: KEY=7f0350 fc00 0 dff 65f87fbf cdffffff 80bee01e f0030004 88000000 40 0 7fffff ffffffff 20206003 e9081e28 0 0 0 0 0 0 0 0 0 0 1000 100fc000 2001440 0 0 70000 20000 2018000 4180 10801 9e1680 0 0 10000ffc
+B: REL=100
+B: ABS=3
+
+I: Bus=0003 Vendor=0000 Product=0000 Version=0004
+N: Name="Bluetooth-audio-source"
+P: Phys=
+S: Sysfs=/devices/virtual/input/input8
+U: Uniq=
+H: Handlers=kbd event8 
+B: PROP=0
+B: EV=3
+B: KEY=3fffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe
+

@@ -3,9 +3,21 @@ set -eu
 grep -q '^ID=starfish' /etc/os-release 2>/dev/null || { echo 'TV-only script: refusing this host' >&2; exit 1; }
 [ "$$" = 1 ] || { echo 'Must run as PID 1 in a private mount/PID namespace' >&2; exit 1; }
 BASE=$1
+MODE=${2:-persistent}
 ROOT=$BASE/root
 mount -n -t squashfs -o loop,ro "$BASE/rootfs.squashfs" "$BASE/lower"
-mount -n -t overlay overlay -o "lowerdir=$BASE/lower,upperdir=$BASE/upper,workdir=$BASE/work" "$ROOT"
+UPPER=$BASE/upper
+WORK=$BASE/work
+if [ "$MODE" = incognito ]; then
+  # One tmpfs holds both overlay layers: overlayfs requires upperdir and
+  # workdir on the same filesystem. Exiting the namespace frees it all.
+  mkdir -p "$BASE/incognito"
+  mount -n -t tmpfs -o mode=700,size=256m tmpfs "$BASE/incognito"
+  mkdir -p "$BASE/incognito/upper" "$BASE/incognito/work"
+  UPPER=$BASE/incognito/upper
+  WORK=$BASE/incognito/work
+fi
+mount -n -t overlay overlay -o "lowerdir=$BASE/lower,upperdir=$UPPER,workdir=$WORK" "$ROOT"
 mount -n -t proc proc "$ROOT/proc"
 mount -n -t tmpfs -o mode=755,size=4m tmpfs "$ROOT/dev"
 for spec in 'null 1 3 666' 'zero 1 5 666' 'random 1 8 666' 'urandom 1 9 666' 'tty 5 0 666'; do

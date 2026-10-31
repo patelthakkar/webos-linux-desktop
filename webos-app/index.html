@@ -4,18 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Linux Desktop</title>
-  <meta name="theme-color" content="#0d100f">
+  <meta name="theme-color" content="#0b100e">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body data-state="checking">
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
         <span class="brand-name">Linux Desktop</span>
         <span class="brand-meta">webOS</span>
+        <span class="badge badge--incognito" id="mode-badge" hidden>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Incognito
+        </span>
+        <span class="badge badge--fresh" id="fresh-badge" hidden>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+          Fresh start
+        </span>
       </div>
-      <p class="topmeta">Alpine Linux · XFCE</p>
+      <div class="topbar-right">
+        <span class="topmeta" id="topmeta">Alpine Linux · XFCE</span>
+        <div class="stats" id="stats" aria-label="TV system statistics">
+          <span class="stat stat--load"><span class="stat-value" data-stat="load">—</span><span class="stat-label">1 min load</span></span>
+          <span class="stat stat--ram"><span class="stat-value" data-stat="ram">—</span><span class="stat-label">RAM used</span></span>
+          <span class="stat stat--var"><span class="stat-value" data-stat="var">—</span><span class="stat-label">/var free</span></span>
+          <span class="stat stat--uptime"><span class="stat-value" data-stat="uptime">—</span><span class="stat-label">Uptime</span></span>
+        </div>
+        <button class="settings-button" id="settings-open" data-focusable aria-haspopup="dialog" aria-controls="settings" aria-expanded="false">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+          <span>Settings</span>
+        </button>
+      </div>
     </header>
 
     <main class="view view-menu" id="menu">
@@ -30,6 +50,46 @@ session.</h1>
         </div>
         <button class="link" id="log-link" data-focusable hidden>Session log</button>
         <p class="hint" id="hint">Checking for the Linux runtime and session state.</p>
+
+        <section class="devices" aria-labelledby="devices-title">
+          <header class="devices-head">
+            <div>
+              <h2 id="devices-title">Input devices</h2>
+              <p class="devices-sub">Physical USB and Bluetooth HID</p>
+            </div>
+            <button class="link-inline" id="devices-refresh" data-focusable>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+              Refresh
+            </button>
+          </header>
+          <div class="device-list">
+            <div class="device-row" data-device="usb-keyboard" data-state="off">
+              <span class="device-dot" aria-hidden="true"></span>
+              <span class="device-port device-port--usb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="19.5" r="1.4"/><path d="M12 18V4.5"/><path d="M9 7.5 12 4.5l3 3"/><path d="M12 12 8.5 9.5v-2"/><path d="M12 12l3.5-2.5v-2"/><circle cx="8.5" cy="6.5" r="1"/><circle cx="15.5" cy="6.5" r="1"/></svg></span>
+              <span class="device-name">USB keyboard</span>
+              <span class="device-status"><span class="device-state">Checking</span></span>
+            </div>
+            <div class="device-row" data-device="usb-pointer" data-state="off">
+              <span class="device-dot" aria-hidden="true"></span>
+              <span class="device-port device-port--usb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="19.5" r="1.4"/><path d="M12 18V4.5"/><path d="M9 7.5 12 4.5l3 3"/><path d="M12 12 8.5 9.5v-2"/><path d="M12 12l3.5-2.5v-2"/><circle cx="8.5" cy="6.5" r="1"/><circle cx="15.5" cy="6.5" r="1"/></svg></span>
+              <span class="device-name">USB mouse / trackpad</span>
+              <span class="device-status"><span class="device-state">Checking</span></span>
+            </div>
+            <div class="device-row" data-device="bt-keyboard" data-state="off">
+              <span class="device-dot" aria-hidden="true"></span>
+              <span class="device-port device-port--bt"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></span>
+              <span class="device-name">Bluetooth keyboard</span>
+              <span class="device-status"><span class="device-state">Checking</span></span>
+            </div>
+            <div class="device-row" data-device="bt-pointer" data-state="off">
+              <span class="device-dot" aria-hidden="true"></span>
+              <span class="device-port device-port--bt"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10-5 4V3l5 4L7 17"/></svg></span>
+              <span class="device-name">Bluetooth mouse / trackpad</span>
+              <span class="device-status"><span class="device-state">Checking</span></span>
+            </div>
+          </div>
+          <p class="device-hint" id="device-hint" role="status">Connect a USB or Bluetooth keyboard and mouse to control the desktop.</p>
+        </section>
       </section>
 
       <aside class="session" aria-label="Session details">
@@ -42,7 +102,7 @@ session.</h1>
         <dl class="facts">
           <div><dt>Base</dt><dd>Alpine 3.22</dd></div>
           <div><dt>Desktop</dt><dd>XFCE 4.20</dd></div>
-          <div><dt>Input</dt><dd>USB / Bluetooth</dd></div>
+          <div><dt>Mode</dt><dd id="fact-mode">Persistent</dd></div>
           <div><dt>Network</dt><dd>Loopback only</dd></div>
         </dl>
       </aside>
@@ -50,7 +110,7 @@ session.</h1>
 
     <footer class="bottombar">
       <span>OK select · Back exit</span>
-      <span>Files persist</span>
+      <span class="persist-note" id="persist-note">Files persist</span>
     </footer>
   </div>
 
@@ -60,9 +120,17 @@ session.</h1>
         <span class="state-dot is-running" aria-hidden="true"></span>
         <span class="brand-name">Linux Desktop</span>
         <span class="screen-state">Running</span>
+        <span class="badge badge--incognito" id="screen-mode" hidden>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Incognito · RAM only
+        </span>
       </div>
       <div class="screen-actions">
-        <span class="topmeta">1280 × 720</span>
+        <span class="topmeta screen-res">1280 × 720</span>
+        <button class="btn btn-ghost btn-settings" id="screen-settings" data-focusable aria-haspopup="dialog" aria-controls="settings" aria-expanded="false">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.11-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.11 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.88V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+          Settings
+        </button>
         <button class="btn btn-ghost" id="controls" data-focusable>Controls</button>
       </div>
     </header>
@@ -83,13 +151,80 @@ session.</h1>
   <div class="scrim" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-title">
     <div class="confirm-panel">
       <h2 id="confirm-title">Stop the desktop?</h2>
-      <p class="confirm-copy">Open applications will close. Save your work before continuing.</p>
+      <p class="confirm-copy" id="confirm-copy">Open applications will close. Save your work before continuing.</p>
+      <p class="confirm-extra" id="confirm-extra" hidden></p>
       <div class="confirm-actions">
         <button class="btn btn-primary" id="cancel-stop" data-focusable>Cancel</button>
         <button class="btn btn-danger" id="confirm-stop" data-focusable>Stop desktop</button>
       </div>
     </div>
   </div>
+
+  <div class="settings-scrim" id="settings-scrim" hidden></div>
+  <section class="settings-panel" id="settings" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <header class="settings-head">
+      <div>
+        <h2 id="settings-title">Settings</h2>
+      </div>
+      <button class="icon-button" id="settings-close" data-focusable aria-label="Close settings">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </header>
+    <div class="settings-body">
+      <section class="settings-group settings-group--display" aria-labelledby="settings-display">
+        <h3 id="settings-display">Display</h3>
+        <button class="setting" type="button" data-setting="stats" role="switch" aria-checked="true" data-focusable>
+          <span class="setting-copy">
+            <span class="setting-name">Show system stats</span>
+            <span class="setting-note">1-minute load, RAM used, free /var, and uptime. Refreshes every 6 seconds.</span>
+          </span>
+          <span class="switch" aria-hidden="true"><span class="switch-thumb"></span></span>
+        </button>
+      </section>
+
+      <section class="settings-group settings-group--session" aria-labelledby="settings-session">
+        <h3 id="settings-session">Session</h3>
+        <button class="setting" type="button" data-setting="incognito" role="switch" aria-checked="false" data-focusable>
+          <span class="setting-copy">
+            <span class="setting-name">Incognito session <span class="setting-tag">RAM only</span></span>
+            <span class="setting-note">Run the writable layer in RAM. Stop ends the session and erases its files.</span>
+            <span class="setting-note setting-note--accent" id="incognito-hint" hidden></span>
+          </span>
+          <span class="switch" aria-hidden="true"><span class="switch-thumb"></span></span>
+        </button>
+        <button class="setting" type="button" data-setting="freshStart" role="switch" aria-checked="false" data-focusable>
+          <span class="setting-copy">
+            <span class="setting-name">Fresh start</span>
+            <span class="setting-note">Closes open apps before opening the desktop.</span>
+            <span class="setting-note setting-note--accent" id="fresh-hint" hidden></span>
+          </span>
+          <span class="switch" aria-hidden="true"><span class="switch-thumb"></span></span>
+        </button>
+      </section>
+
+      <section class="settings-group settings-about" aria-labelledby="settings-about">
+        <h3 id="settings-about">About</h3>
+        <div class="about">
+          <span class="brand-mark brand-mark--large" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <div>
+            <p class="about-name">Linux Desktop</p>
+            <p class="about-version"><span id="about-launcher">Launcher 1.1.0</span><span class="about-sep">·</span><span id="about-runtime">Runtime checking</span></p>
+          </div>
+        </div>
+        <p class="about-copy">Built by Patel Thakkar.</p>
+        <dl class="about-facts">
+          <div><dt>Base</dt><dd>Alpine Linux 3.22</dd></div>
+          <div><dt>Desktop</dt><dd>XFCE 4.20</dd></div>
+          <div><dt>Session</dt><dd>On demand</dd></div>
+        </dl>
+        <button class="about-link about-link--source" id="about-source" data-focusable>
+          <span>github.com/patelthakkar/<wbr>webos-linux-desktop</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-8 8"/><path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/></svg>
+        </button>
+      </section>
+      <p class="settings-foot">Launcher settings are saved on this TV.</p>
+    </div>
+  </section>
 
   <script src="app.js"></script>
 </body>
