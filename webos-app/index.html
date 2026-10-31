@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Linux Desktop</title>
+  <meta name="theme-color" content="#0d100f">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-state="checking">
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Linux Desktop</span>
+        <span class="brand-meta">webOS</span>
+      </div>
+      <p class="topmeta">Alpine Linux · XFCE</p>
+    </header>
+
+    <main class="view view-menu" id="menu">
+      <section class="state-panel" aria-labelledby="headline">
+        <p class="state-line" role="status" aria-live="polite"><span class="state-dot" aria-hidden="true"></span><span id="state-text">Checking session</span></p>
+        <h1 id="headline">Checking
+session.</h1>
+        <p class="lede" id="lede">Looking for the Linux runtime on this TV.</p>
+        <div class="actions">
+          <button class="btn btn-primary" id="primary" data-focusable>Please wait</button>
+          <button class="btn btn-secondary" id="secondary" data-focusable hidden>Check again</button>
+        </div>
+        <button class="link" id="log-link" data-focusable hidden>Session log</button>
+        <p class="hint" id="hint">Checking for the Linux runtime and session state.</p>
+      </section>
+
+      <aside class="session" aria-label="Session details">
+        <p class="eyebrow">Session</p>
+        <ol class="rail" id="rail">
+          <li class="rail-step" data-step="stopped"><span class="rail-dot" aria-hidden="true"></span><span class="rail-name">Stopped</span><span class="rail-note">No processes</span></li>
+          <li class="rail-step" data-step="starting"><span class="rail-dot" aria-hidden="true"></span><span class="rail-name">Starting</span><span class="rail-note">Display server</span></li>
+          <li class="rail-step" data-step="running"><span class="rail-dot" aria-hidden="true"></span><span class="rail-name">Running</span><span class="rail-note">1280 × 720</span></li>
+        </ol>
+        <dl class="facts">
+          <div><dt>Base</dt><dd>Alpine 3.22</dd></div>
+          <div><dt>Desktop</dt><dd>XFCE 4.20</dd></div>
+          <div><dt>Input</dt><dd>USB / Bluetooth</dd></div>
+          <div><dt>Network</dt><dd>Loopback only</dd></div>
+        </dl>
+      </aside>
+    </main>
+
+    <footer class="bottombar">
+      <span>OK select · Back exit</span>
+      <span>Files persist</span>
+    </footer>
+  </div>
+
+  <section class="view view-screen" id="screen" hidden aria-label="Linux desktop">
+    <header class="screenbar">
+      <div class="brand">
+        <span class="state-dot is-running" aria-hidden="true"></span>
+        <span class="brand-name">Linux Desktop</span>
+        <span class="screen-state">Running</span>
+      </div>
+      <div class="screen-actions">
+        <span class="topmeta">1280 × 720</span>
+        <button class="btn btn-ghost" id="controls" data-focusable>Controls</button>
+      </div>
+    </header>
+    <iframe id="desktop" title="Linux desktop display"></iframe>
+  </section>
+
+  <section class="view view-logs" id="logs" hidden aria-label="Session log">
+    <header class="screenbar">
+      <div class="brand"><span class="brand-name">Session log</span></div>
+      <div class="screen-actions">
+        <button class="btn btn-ghost" id="refresh-log" data-focusable>Refresh</button>
+        <button class="btn btn-ghost" id="close-log" data-focusable>Back</button>
+      </div>
+    </header>
+    <pre id="log" tabindex="0" role="log" aria-label="Latest session log">Loading…</pre>
+  </section>
+
+  <div class="scrim" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="confirm-panel">
+      <h2 id="confirm-title">Stop the desktop?</h2>
+      <p class="confirm-copy">Open applications will close. Save your work before continuing.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-primary" id="cancel-stop" data-focusable>Cancel</button>
+        <button class="btn btn-danger" id="confirm-stop" data-focusable>Stop desktop</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

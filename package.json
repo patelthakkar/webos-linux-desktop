@@ -1,0 +1,16 @@
+{
+  "name": "webos-linux-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An Alpine Linux XFCE desktop for rooted LG webOS TVs",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test",
+    "package": "ares-package --outdir dist webos-app",
+    "release": "bash release.sh"
+  },
+  "devDependencies": {
+    "@webos-tools/cli": "^3.2.6"
+  }
+}

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=App Store
+Comment=Install lightweight Linux apps
+Exec=/usr/local/bin/linux-desktop-appstore
+Icon=system-software-install
+Terminal=false
+Categories=System;PackageManager;

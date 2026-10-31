@@ -1,0 +1,16 @@
+{
+  "id": "io.github.patelthakkar.linuxdesktop",
+  "version": "1.0.0",
+  "vendor": "Patel Thakkar",
+  "type": "web",
+  "main": "index.html",
+  "title": "Linux Desktop",
+  "appDescription": "An Alpine Linux desktop running on your rooted webOS TV.",
+  "icon": "icon.png",
+  "largeIcon": "icon-130.png",
+  "iconColor": "#0d100f",
+  "bgColor": "#0d100f",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredACG": []
+}

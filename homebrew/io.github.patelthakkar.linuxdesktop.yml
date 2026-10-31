@@ -1,0 +1,25 @@
+title: Linux Desktop
+iconUri: https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/webos-app/icon-160.png
+manifestUrl: https://github.com/patelthakkar/webos-linux-desktop/releases/latest/download/io.github.patelthakkar.linuxdesktop.manifest.json
+category: utility
+pool: main
+requirements:
+  webosRelease: '>=10.0'
+description: |
+  An Alpine Linux XFCE desktop running on a rooted LG webOS TV, with NetSurf and a small on-desktop App Store.
+
+  This package is the launcher. The desktop runtime is a separate, one-time
+  install over SSH and is about 137 MB. The app shows a setup guide when the
+  runtime is missing.
+
+  ![Linux Desktop launcher](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/launcher.png)
+
+  ![XFCE on the TV](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/desktop.png)
+
+  ![NetSurf on the TV](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/browser.png)
+
+  ![App Store on the TV](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/appstore.png)
+
+  Tested on an LG webOS TV running webOS 10.3.1. It needs a 64-bit ARM kernel,
+  root access, and Homebrew Channel. The desktop is a chroot, not a virtual
+  machine. NetSurf is included; there is no audio or GPU acceleration.

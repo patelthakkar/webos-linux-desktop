@@ -1,0 +1,65 @@
+[
+  {
+    "id": "htop",
+    "name": "htop",
+    "summary": "Interactive process and memory viewer for the terminal.",
+    "size_mb": 0.3,
+    "category": "System"
+  },
+  {
+    "id": "ncdu",
+    "name": "ncdu",
+    "summary": "Find what is using disk space, from a terminal.",
+    "size_mb": 0.1,
+    "category": "System"
+  },
+  {
+    "id": "mc",
+    "name": "Midnight Commander",
+    "summary": "Two-pane file manager with a built-in editor.",
+    "size_mb": 2.4,
+    "category": "Files"
+  },
+  {
+    "id": "nano",
+    "name": "nano",
+    "summary": "Small terminal text editor.",
+    "size_mb": 0.3,
+    "category": "Files"
+  },
+  {
+    "id": "rsync",
+    "name": "rsync",
+    "summary": "Copy and synchronize files over SSH or locally.",
+    "size_mb": 0.5,
+    "category": "Files"
+  },
+  {
+    "id": "tmux",
+    "name": "tmux",
+    "summary": "Keep several terminal sessions in one window.",
+    "size_mb": 0.8,
+    "category": "System"
+  },
+  {
+    "id": "galculator",
+    "name": "galculator",
+    "summary": "Desktop calculator with scientific and programmer modes.",
+    "size_mb": 0.8,
+    "category": "Utilities"
+  },
+  {
+    "id": "ristretto",
+    "name": "Ristretto",
+    "summary": "Fast image viewer for the XFCE desktop.",
+    "size_mb": 0.3,
+    "category": "Utilities"
+  },
+  {
+    "id": "xfce4-screenshooter",
+    "name": "Screenshot",
+    "summary": "Capture the desktop, a window, or a selected region.",
+    "size_mb": 0.3,
+    "category": "Utilities"
+  }
+]
