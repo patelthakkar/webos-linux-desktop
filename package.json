@@ -8,7 +8,8 @@
   "scripts": {
     "test": "node --test",
     "package": "ares-package --outdir dist webos-app",
-    "release": "bash release.sh"
+    "release": "bash release.sh",
+    "build:tails": "bash build/build-tails.sh"
   },
   "devDependencies": {
     "@webos-tools/cli": "^3.2.6"
