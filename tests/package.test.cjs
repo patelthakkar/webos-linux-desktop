@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync, mkdtempSync, rmSync } = require('node:fs');
+const { readFileSync, mkdtempSync, rmSync, statSync } = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
@@ -25,13 +25,75 @@ test('TV package has valid metadata and correctly sized icons', () => {
 });
 
 test('all entry points parse without executing any TV commands', () => {
-  for (const file of ['build/build-rootfs.sh', 'tv/install.sh', 'tests/verify-tv.sh', 'release.sh']) {
+  for (const file of ['build/build-rootfs.sh', 'build/build-tails.sh', 'tv/install.sh', 'tests/verify-tv.sh', 'release.sh']) {
     execFileSync('bash', ['-n', path.join(root, file)]);
   }
-  for (const file of ['build/session.sh', 'tv/control.sh', 'tv/namespace.sh', 'tv/input-devices.sh']) {
+  for (const file of ['build/session.sh', 'tv/control.sh', 'tv/namespace.sh', 'tv/input-devices.sh',
+    'tv/telemetry-check.sh', 'tv/tails-watchdog.sh', 'build/tails/usr/local/bin/tails-desktop-session',
+    'build/tails/usr/local/bin/tails-netns-session', 'build/tails/usr/local/bin/tails-xfce']) {
     execFileSync('sh', ['-n', path.join(root, file)]);
   }
   execFileSync(process.execPath, ['--check', path.join(root, 'webos-app/app.js')]);
+});
+
+test('telemetry check reports LG collection and the local blocker', () => {
+  const run = (prefs, webosbrew) => JSON.parse(execFileSync('sh', [path.join(root, 'tv/telemetry-check.sh')], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      LINUX_DESKTOP_PREFS: path.join(root, 'tests/fixtures', prefs),
+      LINUX_DESKTOP_WEBOSBREW: path.join(root, 'tests/fixtures', webosbrew),
+    },
+  }).trim());
+
+  const dirty = run('telemetry-dirty', 'webosbrew-dirty');
+  assert.equal(dirty.ok, false);
+  for (const key of ['watch_history', 'acr_ads', 'custom_ads', 'data_sharing', 'voice']) {
+    assert.ok(dirty.issues.includes(key), `${key} is reported as on`);
+  }
+  assert.equal(dirty.items.find((item) => item.key === 'blocker').state, 'on');
+  assert.equal(dirty.blockerRules, 2);
+
+  const clean = run('telemetry-clean', 'webosbrew-clean');
+  assert.equal(clean.ok, true);
+  assert.deepEqual(clean.issues, []);
+  assert.equal(clean.unknown, 0);
+  assert.equal(clean.items.find((item) => item.key === 'liveplus').state, 'off');
+});
+
+test('Tails session is wired through the launcher, runtime, and layer', () => {
+  const control = readFileSync(path.join(root, 'tv/control.sh'), 'utf8');
+  for (const token of ['tails-install', 'tails-remove', 'tails-status', 'tails-ack', 'tails-net',
+    'tails-heartbeat', 'TAILS_HB_TIMEOUT', 'tails.squashfs']) {
+    assert.ok(control.includes(token), `control.sh has ${token}`);
+  }
+  assert.match(control, /start \[persistent\|incognito\|tails\]/);
+
+  const namespace = readFileSync(path.join(root, 'tv/namespace.sh'), 'utf8');
+  assert.ok(namespace.includes('$BASE/tails.squashfs'), 'the layer is mounted read-only');
+  assert.ok(namespace.includes('size=384m'), 'Tails gets a larger RAM overlay');
+  assert.ok(namespace.includes('tails-desktop-session'));
+
+  const watchdog = readFileSync(path.join(root, 'tv/tails-watchdog.sh'), 'utf8');
+  assert.ok(watchdog.includes('exec 9>&-'), 'the watchdog never inherits the control lock');
+  assert.ok(watchdog.includes('control.sh" stop'));
+
+  const app = readFileSync(path.join(root, 'webos-app/app.js'), 'utf8');
+  for (const token of ['control.sh start tails', 'tails-ack notice', 'tails-ack telemetry',
+    'tails-net', 'heartbeat', 'HEARTBEAT_MS', 'visibilitychange']) {
+    assert.ok(app.includes(token), `app.js has ${token}`);
+  }
+  const html = readFileSync(path.join(root, 'webos-app/index.html'), 'utf8');
+  for (const token of ['data-setting="tails"', 'tails-notice', 'tails-telemetry', 'id="tails-install"']) {
+    assert.ok(html.includes(token), `index.html has ${token}`);
+  }
+  for (const file of ['tails-desktop-session', 'tails-netns-session', 'tails-xfce']) {
+    const mode = statSync(path.join(root, 'build/tails/usr/local/bin', file)).mode;
+    assert.ok(mode & 0o111, `${file} is executable`);
+  }
+  const torrc = readFileSync(path.join(root, 'build/tails/usr/local/share/linux-desktop-tails/torrc'), 'utf8');
+  assert.ok(torrc.includes('DataDirectory /run/tails/data'), 'Tor state stays in RAM');
+  assert.ok(torrc.includes('SocksPort unix:/run/tails/socks.sock'));
 });
 
 test('App Store catalog and package-helper tests pass', () => {
@@ -129,7 +191,7 @@ test('input parser separates USB and Bluetooth HID and ignores virtual remotes',
 });
 
 test('README screenshots exist at the published size', () => {
-  for (const name of ['launcher', 'desktop', 'browser', 'appstore']) {
+  for (const name of ['launcher', 'desktop', 'browser', 'appstore', 'tails-settings', 'tails-notice', 'tails-telemetry']) {
     const size = pngSize(path.join(root, 'docs', `${name}.png`));
     assert.deepEqual(size, { width: 1600, height: 900 });
   }

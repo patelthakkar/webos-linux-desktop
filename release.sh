@@ -10,13 +10,16 @@ fi
 
 [ -r artifacts/rootfs.squashfs ] || { echo 'Missing artifacts/rootfs.squashfs' >&2; exit 1; }
 [ -r artifacts/rootfs.squashfs.sha256 ] || { echo 'Missing artifacts/rootfs.squashfs.sha256' >&2; exit 1; }
+[ -r artifacts/tails.squashfs ] || { echo 'Missing artifacts/tails.squashfs; run build/build-tails.sh' >&2; exit 1; }
 
 rm -rf dist
 mkdir -p dist/runtime
 cp artifacts/rootfs.squashfs artifacts/rootfs.squashfs.sha256 dist/runtime/
-cp tv/control.sh tv/namespace.sh tv/input-devices.sh THIRD-PARTY.md dist/runtime/
+cp tv/control.sh tv/namespace.sh tv/input-devices.sh tv/telemetry-check.sh tv/tails-watchdog.sh THIRD-PARTY.md dist/runtime/
 tar -cf dist/linux-desktop-runtime.tar -C dist/runtime .
 rm -rf dist/runtime
+cp artifacts/tails.squashfs dist/linux-desktop-tails.squashfs
+(cd dist && sha256sum linux-desktop-tails.squashfs > linux-desktop-tails.squashfs.sha256)
 
 if command -v ares-package >/dev/null 2>&1; then
   ares-package --outdir dist webos-app
@@ -25,5 +28,5 @@ else
 fi
 
 node scripts/make-manifest.js
-(cd dist && sha256sum *.ipk *.manifest.json *.tar > SHA256SUMS)
+(cd dist && sha256sum *.ipk *.manifest.json *.tar *.squashfs > SHA256SUMS)
 ls -lh dist

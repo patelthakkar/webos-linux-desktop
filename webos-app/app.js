@@ -8,10 +8,23 @@ const PREVIEW = new URLSearchParams(location.search).get('preview');
 const PREVIEW_INCOGNITO = new URLSearchParams(location.search).get('incognito') === '1';
 const PREVIEW_FRESH = new URLSearchParams(location.search).get('fresh') === '1';
 const PREVIEW_SETTINGS = new URLSearchParams(location.search).get('settings') === '1';
-const APP_VERSION = '1.1.0';
-const SETTINGS_KEY = 'linuxdesktop.settings.v2';
+const PREVIEW_TAILS = new URLSearchParams(location.search).get('tails') || '';
+const APP_VERSION = '1.2.0';
+const SETTINGS_KEY = 'linuxdesktop.settings.v3';
 const STATS_MS = 6000;
-const DEFAULT_SETTINGS = { stats: true, incognito: false, freshStart: false };
+const HEARTBEAT_MS = 5000;
+const DEFAULT_SETTINGS = { stats: true, incognito: false, freshStart: false, tails: false };
+const TELEMETRY_LABELS = {
+  liveplus: 'Live Plus, the screen content recognition switch',
+  watch_history: 'Viewing history collection',
+  screen_ads: 'Screen-saver advertising',
+  acr_consent: 'Automatic content recognition consent',
+  acr_ads: 'Ads matched to what is on screen',
+  custom_ads: 'Custom advertising',
+  data_sharing: 'Extra data sharing and marketing',
+  voice: 'Voice data collection',
+  remote_diag: 'Remote diagnostics',
+};
 
 const $ = (id) => document.getElementById(id);
 const appShell = document.querySelector('.app');
@@ -45,6 +58,21 @@ const confirmCopy = $('confirm-copy');
 const confirmExtra = $('confirm-extra');
 const confirmStop = $('confirm-stop');
 const cancelStop = $('cancel-stop');
+const modeBadgeText = $('mode-badge-text');
+const screenModeText = $('screen-mode-text');
+const tailsInstall = $('tails-install');
+const tailsSetting = $('tails-setting');
+const tailsName = $('tails-name');
+const tailsNote = $('tails-note');
+const tailsMeta = $('tails-meta');
+const tailsMetaState = $('tails-meta-state');
+const tailsHint = $('tails-hint');
+const tailsNet = $('tails-net');
+const tailsNetState = $('tails-net-state');
+const tailsRemove = $('tails-remove');
+const tailsNotice = $('tails-notice');
+const telemetryDialog = $('tails-telemetry');
+const telemetryList = $('tails-telemetry-list');
 
 let state = { name: PREVIEW || 'checking', detail: '', hint: '' };
 let previewState = PREVIEW;
@@ -63,6 +91,23 @@ let inputs = null;
 let statsInFlight = false;
 let inputsInFlight = false;
 let settings = loadSettings();
+let tails = {
+  installed: false,
+  version: '',
+  bytes: 0,
+  ack: false,
+  telemetryAck: false,
+  session: 'stopped',
+  mode: 'persistent',
+  telemetry: null,
+};
+let tailsInFlight = false;
+let tailsInstalling = false;
+let tailsError = '';
+let tailsRan = false;
+let tailsRemoveArmed = null;
+let heartbeatTimer = null;
+let lastDialogFocus = null;
 
 const config = {
   checking: {
@@ -215,14 +260,72 @@ function previewInputs() {
   ].join('\n');
 }
 
+function previewTelemetry() {
+  return {
+    ok: false,
+    checked: 11,
+    unknown: 0,
+    blockerRules: 578,
+    issues: ['watch_history', 'acr_ads', 'custom_ads', 'data_sharing', 'voice'],
+    items: [
+      { key: 'liveplus', state: 'off' },
+      { key: 'watch_history', state: 'on' },
+      { key: 'screen_ads', state: 'off' },
+      { key: 'acr_consent', state: 'off' },
+      { key: 'acr_ads', state: 'on' },
+      { key: 'custom_ads', state: 'on' },
+      { key: 'data_sharing', state: 'on' },
+      { key: 'voice', state: 'on' },
+      { key: 'remote_diag', state: 'off' },
+      { key: 'blocker', state: 'on' },
+      { key: 'updates', state: 'blocked' },
+    ],
+  };
+}
+
+function previewTailsStatus() {
+  return JSON.stringify({
+    installed: tails.installed,
+    version: tails.version,
+    bytes: tails.bytes,
+    ack: tails.ack,
+    telemetryAck: tails.telemetryAck,
+    session: previewState || 'stopped',
+    mode: previewState === 'running' ? previewMode : 'persistent',
+    heartbeat: 0,
+    telemetry: tails.telemetry || previewTelemetry(),
+  });
+}
+
 async function command(action) {
   if (PREVIEW) {
     if (action === 'status') return previewState || 'missing';
     if (action === 'logs') return previewLog();
     if (action === 'stats') return previewStats();
     if (action === 'inputs') return previewInputs();
+    if (action === 'tails-status') return previewTailsStatus();
+    if (action === 'tails-install') {
+      tails.installed = true;
+      tails.version = APP_VERSION;
+      tails.bytes = 12900000;
+      return 'installed';
+    }
+    if (action === 'tails-remove') {
+      tails.installed = false;
+      return 'removed';
+    }
+    if (action === 'tails-ack-notice') {
+      tails.ack = true;
+      return 'ok';
+    }
+    if (action === 'tails-ack-telemetry') {
+      tails.telemetryAck = true;
+      return 'ok';
+    }
+    if (action === 'tails-net') return JSON.stringify({ tor: true });
+    if (action === 'heartbeat') return 'ok';
     if (action === 'start') {
-      previewMode = settings.incognito ? 'incognito' : 'persistent';
+      previewMode = settings.tails ? 'tails' : settings.incognito ? 'incognito' : 'persistent';
       previewState = 'starting';
       setTimeout(() => {
         previewState = 'running';
@@ -241,15 +344,25 @@ async function command(action) {
   }
   const commands = {
     status: PROBE,
-    start: settings.incognito
-      ? `INCOGNITO=1 ${BASE}/control.sh start`
-      : `${BASE}/control.sh start`,
+    start: settings.tails
+      ? `${BASE}/control.sh start tails`
+      : settings.incognito
+        ? `INCOGNITO=1 ${BASE}/control.sh start`
+        : `${BASE}/control.sh start`,
     stop: `${BASE}/control.sh stop`,
     stats: `${BASE}/control.sh stats`,
     inputs: `${BASE}/control.sh inputs`,
     logs: `${BASE}/control.sh logs`,
+    'tails-status': `${BASE}/control.sh tails-status`,
+    'tails-install': `${BASE}/control.sh tails-install`,
+    'tails-remove': `${BASE}/control.sh tails-remove`,
+    'tails-ack-notice': `${BASE}/control.sh tails-ack notice`,
+    'tails-ack-telemetry': `${BASE}/control.sh tails-ack telemetry`,
+    'tails-net': `${BASE}/control.sh tails-net`,
+    heartbeat: `${BASE}/control.sh tails-heartbeat`,
   };
-  return bridgeCall('luna://org.webosbrew.hbchannel.service/exec', { command: commands[action] });
+  const timeout = action === 'tails-install' ? 120000 : action === 'tails-net' ? 20000 : 15000;
+  return bridgeCall('luna://org.webosbrew.hbchannel.service/exec', { command: commands[action] }, timeout);
 }
 
 function stateFromOutput(output) {
@@ -297,6 +410,7 @@ function applyStats(data) {
   setStat('ram', ram, data ? `RAM used: ${formatKbShort(data.memUsed)} of ${formatKbShort(data.memTotal)}.` : 'Statistics unavailable');
   setStat('var', varFree, data ? `/var free space: ${formatKbShort(data.varFree)}.` : 'Statistics unavailable');
   setStat('uptime', uptime, data ? 'TV uptime.' : 'Statistics unavailable');
+  if (data && data.mode === 'tails') tailsRan = true;
   aboutRuntime.textContent = data && data.runtimeVersion ? `Runtime ${data.runtimeVersion}` : 'Runtime unavailable';
   updateModeUI();
   updateFreshUI();
@@ -345,6 +459,263 @@ function applyInputs(data) {
   deviceHint.hidden = any || !data;
 }
 
+function formatBytes(value) {
+  const bytes = Number(value);
+  if (!Number.isFinite(bytes) || bytes <= 0) return '';
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+async function refreshTails() {
+  if (PREVIEW) {
+    tails.installed = PREVIEW_TAILS !== '' || tails.installed;
+    if (PREVIEW_TAILS) {
+      tails.version = APP_VERSION;
+      tails.bytes = 12900000;
+      tails.telemetry = tails.telemetry || previewTelemetry();
+    }
+  }
+  if (tailsInFlight) return tails;
+  tailsInFlight = true;
+  try {
+    const next = JSON.parse(await command('tails-status'));
+    tails = { ...tails, ...next };
+    tails.installed = Boolean(next.installed);
+    tails.telemetry = next.telemetry || null;
+    if (next.mode === 'tails') tailsRan = true;
+  } catch (_) {
+    // Keep the last known state; the launcher still works without the check.
+  } finally {
+    tailsInFlight = false;
+  }
+  applyTails();
+  return tails;
+}
+
+function applyTails() {
+  const installed = Boolean(tails.installed);
+  tailsName.textContent = installed ? 'Tails is installed' : 'Not installed';
+  if (tailsError) {
+    tailsNote.textContent = tailsError;
+  } else if (tailsInstalling) {
+    tailsNote.textContent = 'Downloading and checking the Tor session. This happens once.';
+  } else if (installed) {
+    const size = formatBytes(tails.bytes);
+    tailsNote.textContent = `${size ? `${size} · ` : ''}Tor-only desktop in RAM. Nothing is written to the TV.`;
+  } else {
+    tailsNote.textContent = 'A Tor-only desktop that lives in RAM and ends when you leave this app.';
+  }
+  tailsInstall.hidden = installed;
+  tailsInstall.disabled = tailsInstalling;
+  tailsInstall.textContent = tailsInstalling ? 'Installing…' : 'Install Tails';
+  tailsSetting.hidden = !installed;
+  tailsMeta.hidden = !installed;
+  tailsMetaState.textContent = installed && tails.version ? `Tails ${tails.version}` : installed ? 'Installed' : '';
+  tailsSetting.setAttribute('aria-checked', String(Boolean(installed && settings.tails)));
+
+  const active = ['running', 'starting'].includes(state.name);
+  const tailMode = Boolean(active && stats && stats.mode === 'tails');
+  if (!settings.tails || !installed) {
+    tailsHint.hidden = true;
+  } else {
+    tailsHint.hidden = false;
+    if (tailMode) tailsHint.textContent = 'This session is in RAM. Closing the app ends it and erases it.';
+    else if (active) tailsHint.textContent = 'Stop the current session first. Tails starts next time.';
+    else tailsHint.textContent = 'The next start opens Tails. The toggle resets after that session.';
+  }
+  if (!installed) {
+    tailsNetState.textContent = '';
+  }
+}
+
+async function installTails() {
+  if (tailsInstalling) return;
+  tailsInstalling = true;
+  tailsError = '';
+  applyTails();
+  try {
+    await command('tails-install');
+    await refreshTails();
+  } catch (error) {
+    tailsError = cleanError(error);
+  } finally {
+    tailsInstalling = false;
+    applyTails();
+    if (tails.installed) tailsSetting.focus();
+    else tailsInstall.focus();
+  }
+}
+
+function disarmRemove() {
+  if (!tailsRemoveArmed) return;
+  clearTimeout(tailsRemoveArmed);
+  tailsRemoveArmed = null;
+  tailsRemove.textContent = 'Remove';
+}
+
+async function removeTails() {
+  if (!tails.installed || tailsInstalling) return;
+  if (!tailsRemoveArmed) {
+    tailsRemoveArmed = setTimeout(disarmRemove, 4000);
+    tailsRemove.textContent = 'Press again to remove';
+    return;
+  }
+  disarmRemove();
+  try {
+    await command('tails-remove');
+  } catch (error) {
+    tailsError = cleanError(error);
+  }
+  settings.tails = false;
+  saveSettings();
+  await refreshTails();
+  applyTails();
+  tailsInstall.focus();
+}
+
+async function checkTor() {
+  tailsNetState.textContent = 'Checking…';
+  try {
+    const result = JSON.parse(await command('tails-net'));
+    tailsNetState.textContent = result.tor ? 'Tor exit confirmed' : 'Tor not reachable yet';
+  } catch (_) {
+    tailsNetState.textContent = 'Check failed';
+  }
+}
+
+function openDialog(element, focusTarget) {
+  lastDialogFocus = document.activeElement;
+  appShell.inert = true;
+  screen.inert = true;
+  logs.inert = true;
+  settingsPanel.inert = true;
+  element.hidden = false;
+  if (focusTarget) focusTarget.focus();
+}
+
+function closeDialog(element) {
+  element.hidden = true;
+  settingsPanel.inert = false;
+  if (settingsPanel.hidden) {
+    appShell.inert = false;
+    screen.inert = false;
+    logs.inert = false;
+  }
+  const target = lastDialogFocus;
+  if (target && typeof target.focus === 'function' && target.getClientRects().length > 0) target.focus();
+}
+
+function openTelemetryDialog() {
+  const data = tails.telemetry || { items: [] };
+  const items = data.items || [];
+  const on = items.filter((item) => item.state === 'on' && TELEMETRY_LABELS[item.key]);
+  const unknown = items.filter((item) => item.state === 'unknown');
+  telemetryList.textContent = '';
+  for (const item of on) {
+    const row = document.createElement('li');
+    row.className = 'data-item';
+    const name = document.createElement('span');
+    name.textContent = TELEMETRY_LABELS[item.key] || item.key;
+    const flag = document.createElement('span');
+    flag.className = 'data-flag';
+    flag.textContent = 'On';
+    row.append(name, flag);
+    telemetryList.append(row);
+  }
+  if (data.blockerRules > 0) {
+    const row = document.createElement('li');
+    row.className = 'data-item data-item--ok';
+    const name = document.createElement('span');
+    name.textContent = 'DNS telemetry blocker';
+    const flag = document.createElement('span');
+    flag.className = 'data-flag';
+    flag.textContent = `${data.blockerRules} rules`;
+    row.append(name, flag);
+    telemetryList.append(row);
+  }
+  let copy = 'LG data collection is not fully off. Check these before the first Tails session.';
+  if (!on.length) copy = 'The usual LG data collection switches look off, but the TV could not confirm everything.';
+  if (unknown.length) copy += ` ${unknown.length} setting${unknown.length === 1 ? '' : 's'} could not be read.`;
+  $('tails-telemetry-copy').textContent = copy;
+  openDialog(telemetryDialog, $('tails-telemetry-cancel'));
+}
+
+function openTailsNotice() {
+  openDialog(tailsNotice, $('tails-notice-cancel'));
+}
+
+async function acceptTelemetry() {
+  closeDialog(telemetryDialog);
+  try {
+    await command('tails-ack-telemetry');
+    tails.telemetryAck = true;
+  } catch (_) {}
+  if (!tails.ack) openTailsNotice();
+  else beginStart();
+}
+
+async function acceptTailsNotice() {
+  closeDialog(tailsNotice);
+  try {
+    await command('tails-ack-notice');
+    tails.ack = true;
+  } catch (_) {}
+  beginStart();
+}
+
+function tailsSessionActive() {
+  if (stats && stats.mode === 'tails') return true;
+  return Boolean(settings.tails && ['starting', 'running'].includes(state.name));
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  heartbeatTimer = null;
+}
+
+function beat() {
+  command('heartbeat').catch(() => {});
+}
+
+function syncHeartbeat() {
+  if (!tailsSessionActive() || document.hidden) {
+    stopHeartbeat();
+    return;
+  }
+  if (heartbeatTimer) return;
+  beat();
+  heartbeatTimer = setInterval(() => {
+    if (document.hidden) {
+      stopHeartbeat();
+      command('stop').catch(() => {});
+      return;
+    }
+    beat();
+  }, HEARTBEAT_MS);
+}
+
+function clearTailsToggle() {
+  if (!settings.tails) return;
+  settings.tails = false;
+  saveSettings();
+  applySettings();
+  applyTails();
+}
+
+// A Tails toggle is one session only. If the launcher was closed or the TV
+// restarted, the next open is a normal XFCE launcher.
+async function bootTails() {
+  const status = await refreshTails();
+  if (status.mode === 'tails' && status.session !== 'stopped') {
+    tailsRan = true;
+    return;
+  }
+  if (settings.tails) {
+    settings.tails = false;
+    saveSettings();
+    applySettings();
+  }
+}
+
 function updateIncognitoHint() {
   const incognitoHint = $('incognito-hint');
   if (!settings.incognito) {
@@ -383,13 +754,25 @@ function updateFreshUI() {
 function updateModeUI() {
   const active = ['running', 'starting'].includes(state.name);
   const incognito = active && stats && stats.mode === 'incognito';
-  modeBadge.hidden = !incognito;
-  screenMode.hidden = !incognito;
-  factMode.textContent = incognito ? 'Incognito' : 'Persistent';
-  factMode.classList.toggle('is-incognito', Boolean(incognito));
-  persistNote.textContent = incognito ? 'Incognito · RAM only' : 'Files persist';
+  const tailsMode = active && stats && stats.mode === 'tails';
+  modeBadge.hidden = !(incognito || tailsMode);
+  modeBadge.classList.toggle('badge--tails', Boolean(tailsMode));
+  modeBadgeText.textContent = tailsMode ? 'Tails · Tor' : 'Incognito';
+  screenMode.hidden = !(incognito || tailsMode);
+  screenMode.classList.toggle('badge--tails', Boolean(tailsMode));
+  screenModeText.textContent = tailsMode ? 'Tails · Tor · RAM only' : 'Incognito · RAM only';
+  factMode.textContent = tailsMode ? 'Tails' : incognito ? 'Incognito' : 'Persistent';
+  factMode.classList.toggle('is-incognito', Boolean(incognito || tailsMode));
+  persistNote.textContent = tailsMode ? 'Tails · RAM only' : incognito ? 'Incognito · RAM only' : 'Files persist';
   persistNote.classList.toggle('is-incognito', Boolean(incognito));
+  persistNote.classList.toggle('is-tails', Boolean(tailsMode));
+  if (state.name === 'running') {
+    if (tailsMode) hint.textContent = 'Closing this app ends the Tails session and erases it.';
+    else if (incognito) hint.textContent = 'Closing this app leaves the incognito session running in RAM until you stop it.';
+  }
   updateIncognitoHint();
+  applyTails();
+  syncHeartbeat();
 }
 
 function render() {
@@ -399,7 +782,9 @@ function render() {
   headline.textContent = current.headline;
   lede.textContent = state.detail || current.lede;
   let hintText = state.hint || current.hint;
-  if (state.name === 'running' && stats && stats.mode === 'incognito') {
+  if (state.name === 'running' && stats && stats.mode === 'tails') {
+    hintText = 'Closing this app ends the Tails session and erases it.';
+  } else if (state.name === 'running' && stats && stats.mode === 'incognito') {
     hintText = 'Closing this app leaves the incognito session running in RAM until you stop it.';
   }
   hint.textContent = hintText;
@@ -441,7 +826,8 @@ function render() {
   updateModeUI();
   updateFreshUI();
 
-  if (!screen.hidden || !logs.hidden || !confirmBox.hidden || !settingsPanel.hidden) return;
+  if (!screen.hidden || !logs.hidden || !confirmBox.hidden || !settingsPanel.hidden
+    || !tailsNotice.hidden || !telemetryDialog.hidden) return;
   const active = document.activeElement;
   if (!(menu.contains(active) || active === settingsOpen) || active.disabled || active.hidden) {
     const target = primary.hidden || primary.disabled ? secondary : primary;
@@ -480,6 +866,10 @@ async function probe() {
     if (next.name === 'starting') {
       setState('starting');
       return;
+    }
+    if (tailsRan && !opening) {
+      tailsRan = false;
+      clearTailsToggle();
     }
     setState('stopped');
   } catch (error) {
@@ -536,16 +926,43 @@ function watchStart() {
 
 async function startDesktop() {
   if (busy) return;
+  if (settings.tails) {
+    const status = await refreshTails();
+    if (!status.installed) {
+      setState('error', 'Tails is not installed. Install it from Settings, then try again.');
+      return;
+    }
+    if (status.telemetry && !status.telemetry.ok && !status.telemetryAck) {
+      openTelemetryDialog();
+      return;
+    }
+    if (!status.ack) {
+      openTailsNotice();
+      return;
+    }
+    tailsRan = true;
+  }
+  beginStart();
+}
+
+async function beginStart() {
+  if (busy) return;
   busy = true;
   opening = true;
-  setState('starting', '', settings.incognito ? 'Starting an incognito session in RAM.' : '');
-  startDeadline = Date.now() + 60000;
+  if (settings.tails) tailsRan = true;
+  setState('starting', '', settings.tails
+    ? 'Starting Tails. Tor takes a few seconds to connect.'
+    : settings.incognito ? 'Starting an incognito session in RAM.' : '');
+  startDeadline = Date.now() + 90000;
   try {
     await command('start');
   } catch (error) {
     opening = false;
     busy = false;
-    setState('error', cleanError(error));
+    const message = cleanError(error);
+    if (/notice not accepted/.test(message)) { openTailsNotice(); return; }
+    if (/telemetry warning not accepted/.test(message)) { openTelemetryDialog(); return; }
+    setState('error', message);
     return;
   }
   busy = false;
@@ -610,6 +1027,9 @@ async function stopDesktop() {
     if (stats) stats.mode = 'persistent';
     hideScreen();
     setState('stopped');
+    stopHeartbeat();
+    tailsRan = false;
+    clearTailsToggle();
     loadDashboard();
     return true;
   } catch (error) {
@@ -654,10 +1074,12 @@ function focusables(view) {
 }
 
 function moveFocus(direction) {
-  const scope = !settingsPanel.hidden ? settingsPanel
-    : !confirmBox.hidden ? confirmBox
-      : !logs.hidden ? logs
-        : !screen.hidden ? screen : menu;
+  const scope = !telemetryDialog.hidden ? telemetryDialog
+    : !tailsNotice.hidden ? tailsNotice
+      : !settingsPanel.hidden ? settingsPanel
+        : !confirmBox.hidden ? confirmBox
+          : !logs.hidden ? logs
+            : !screen.hidden ? screen : menu;
   const items = focusables(scope);
   if (!items.length) return;
   const index = items.indexOf(document.activeElement);
@@ -686,17 +1108,20 @@ function openStopConfirm(reason = 'stop') {
   if (!confirmBox.hidden || !settingsPanel.hidden) return;
   pendingConfirm = reason;
   const fresh = reason === 'fresh';
-  const incognito = Boolean(stats && stats.mode === 'incognito' && ['running', 'starting'].includes(state.name));
-  confirmTitle.textContent = fresh ? 'Start fresh?' : 'Stop the desktop?';
+  const active = ['running', 'starting'].includes(state.name);
+  const tailsMode = Boolean(stats && stats.mode === 'tails' && active);
+  const incognito = Boolean(stats && stats.mode === 'incognito' && active);
+  confirmTitle.textContent = fresh ? 'Start fresh?' : tailsMode ? 'End the Tails session?' : 'Stop the desktop?';
   confirmCopy.textContent = fresh
     ? 'The running desktop will close, then a clean session will start. Open applications will lose unsaved work.'
     : 'Open applications will close. Save your work before continuing.';
   const extra = [];
   if (fresh) extra.push('A clean session starts after the current one closes.');
-  if (incognito) extra.push('This session is in RAM. Stopping it erases its files and changes.');
+  if (tailsMode) extra.push('This session is in RAM and bound to the app. Stopping it erases it, and the Tails toggle turns off.');
+  else if (incognito) extra.push('This session is in RAM. Stopping it erases its files and changes.');
   confirmExtra.textContent = extra.join(' ');
   confirmExtra.hidden = !extra.length;
-  confirmStop.textContent = fresh ? 'Start fresh' : 'Stop desktop';
+  confirmStop.textContent = fresh ? 'Start fresh' : tailsMode ? 'End Tails' : 'Stop desktop';
   confirmStop.className = fresh ? 'btn btn-primary' : 'btn btn-danger';
   cancelStop.className = fresh ? 'btn btn-secondary' : 'btn btn-primary';
   lastFocus = document.activeElement;
@@ -737,14 +1162,17 @@ function openSettings() {
   settingsScrim.hidden = false;
   if (!stats) loadStats();
   if (!inputs) loadInputs();
+  refreshTails();
   updateIncognitoHint();
   updateFreshUI();
+  applyTails();
   const first = settingsPanel.querySelector('[data-setting]') || focusables(settingsPanel)[0];
   if (first) first.focus();
 }
 
 function closeSettings() {
   if (settingsPanel.hidden) return;
+  disarmRemove();
   settingsPanel.hidden = true;
   settingsScrim.hidden = true;
   appShell.inert = false;
@@ -764,7 +1192,10 @@ function closeSettings() {
 function toggleSetting(button) {
   const key = button.dataset.setting;
   if (!(key in DEFAULT_SETTINGS)) return;
+  if (key === 'tails' && !tails.installed) return;
   settings[key] = !settings[key];
+  if (key === 'tails' && settings.tails) settings.incognito = false;
+  if (key === 'incognito' && settings.incognito) settings.tails = false;
   saveSettings();
   applySettings();
   render();
@@ -774,13 +1205,16 @@ function applySettings() {
   document.body.classList.toggle('stats-hidden', !settings.stats);
   for (const button of document.querySelectorAll('[data-setting]')) {
     const key = button.dataset.setting;
-    button.setAttribute('aria-checked', String(Boolean(settings[key])));
+    const value = key === 'tails' ? Boolean(settings.tails && tails.installed) : Boolean(settings[key]);
+    button.setAttribute('aria-checked', String(value));
   }
   updateModeUI();
   updateFreshUI();
 }
 
 function back() {
+  if (!telemetryDialog.hidden) { closeDialog(telemetryDialog); return; }
+  if (!tailsNotice.hidden) { closeDialog(tailsNotice); return; }
   if (!settingsPanel.hidden) { closeSettings(); return; }
   if (!confirmBox.hidden) { closeStopConfirm(); return; }
   if (!logs.hidden) { closeLogs(); return; }
@@ -823,7 +1257,8 @@ function loadDashboard() {
 }
 
 function menuFocused() {
-  return !menu.hidden && screen.hidden && logs.hidden && confirmBox.hidden && settingsPanel.hidden;
+  return !menu.hidden && screen.hidden && logs.hidden && confirmBox.hidden
+    && settingsPanel.hidden && tailsNotice.hidden && telemetryDialog.hidden;
 }
 
 primary.addEventListener('click', () => {
@@ -855,6 +1290,13 @@ screenSettings.addEventListener('click', openSettings);
 settingsClose.addEventListener('click', closeSettings);
 settingsScrim.addEventListener('click', closeSettings);
 $('about-source').addEventListener('click', () => openExternal(GITHUB_SOURCE));
+tailsInstall.addEventListener('click', installTails);
+tailsNet.addEventListener('click', checkTor);
+tailsRemove.addEventListener('click', removeTails);
+$('tails-telemetry-cancel').addEventListener('click', () => closeDialog(telemetryDialog));
+$('tails-telemetry-continue').addEventListener('click', acceptTelemetry);
+$('tails-notice-cancel').addEventListener('click', () => closeDialog(tailsNotice));
+$('tails-notice-accept').addEventListener('click', acceptTailsNotice);
 for (const button of document.querySelectorAll('[data-setting]')) {
   button.addEventListener('click', () => toggleSetting(button));
 }
@@ -865,8 +1307,10 @@ document.addEventListener('keydown', (event) => {
     back();
     return;
   }
-  if (event.key === 'Tab' && (!settingsPanel.hidden || !confirmBox.hidden)) {
-    const scope = !settingsPanel.hidden ? settingsPanel : confirmBox;
+  if (event.key === 'Tab' && (!telemetryDialog.hidden || !tailsNotice.hidden || !settingsPanel.hidden || !confirmBox.hidden)) {
+    const scope = !telemetryDialog.hidden ? telemetryDialog
+      : !tailsNotice.hidden ? tailsNotice
+        : !settingsPanel.hidden ? settingsPanel : confirmBox;
     const items = focusables(scope);
     if (!items.length) return;
     const index = items.indexOf(document.activeElement);
@@ -887,7 +1331,13 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
+  if (document.hidden) {
+    if (tailsSessionActive()) {
+      stopHeartbeat();
+      command('stop').catch(() => {});
+    }
+    return;
+  }
   if (menuFocused()) {
     loadDashboard();
     if (!opening) probe();
@@ -896,18 +1346,43 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+window.addEventListener('pagehide', () => {
+  if (!tailsSessionActive()) return;
+  command('stop').catch(() => {});
+});
+
 applySettings();
 $('about-launcher').textContent = `Launcher ${APP_VERSION}`;
 
 if (PREVIEW) {
   if (state.name === 'error') state.detail = 'The display server exited before it was ready.';
+  if (PREVIEW_TAILS) {
+    tails.installed = true;
+    tails.version = APP_VERSION;
+    tails.bytes = 12900000;
+    tails.telemetry = previewTelemetry();
+    tails.ack = PREVIEW_TAILS !== 'notice' && PREVIEW_TAILS !== 'telemetry';
+    tails.telemetryAck = tails.ack;
+    tails.telemetry.ok = tails.ack;
+    if (PREVIEW_TAILS === 'running') {
+      previewState = 'running';
+      previewMode = 'tails';
+      settings.tails = true;
+    }
+  }
   setState(state.name, state.detail);
   loadDashboard();
-  if (PREVIEW_SETTINGS) openSettings();
+  applyTails();
+  if (PREVIEW_SETTINGS) {
+    openSettings();
+    if (PREVIEW_TAILS === 'notice') openTailsNotice();
+    if (PREVIEW_TAILS === 'telemetry') openTelemetryDialog();
+  }
 } else {
   setState('checking');
   probe();
   loadDashboard();
+  bootTails();
 }
 
 setInterval(() => {

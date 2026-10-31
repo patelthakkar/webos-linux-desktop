@@ -1,0 +1,55 @@
+#!/bin/sh
+# Root process inside the chroot for a Tails session.
+# Tor and the display stay on the TV's network namespace. The desktop runs in
+# a second namespace that has nothing but loopback and a SOCKS bridge to Tor.
+set -eu
+
+export HOME=/home/desk USER=desk LOGNAME=desk DISPLAY=:7
+export XDG_RUNTIME_DIR=/tmp/runtime-desk
+export XDG_SESSION_TYPE=x11 XDG_CURRENT_DESKTOP=XFCE
+export LIBGL_ALWAYS_SOFTWARE=1 TZ=UTC
+export TORSOCKS_CONF_FILE=/usr/local/share/linux-desktop-tails/torsocks.conf
+
+RUN=/run/tails
+mkdir -p "$RUN/data" "$RUN/cache" "$XDG_RUNTIME_DIR" /tmp/.X11-unix
+chmod 700 "$RUN" "$XDG_RUNTIME_DIR"
+chown -R 1000:1000 "$RUN" "$XDG_RUNTIME_DIR"
+chmod 1777 /tmp/.X11-unix
+
+torpid=
+vnc=
+ws=
+apps=
+cleanup() {
+  for pid in "$apps" "$ws" "$vnc" "$torpid"; do
+    [ -n "${pid:-}" ] && kill "$pid" 2>/dev/null || true
+  done
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
+
+as_desk() {
+  /bin/setpriv --reuid=1000 --regid=1000 --clear-groups \
+    --bounding-set=-all --no-new-privs "$@"
+}
+
+# Tor needs the real network, so it lives outside the isolated namespace.
+as_desk /usr/bin/tor -f /usr/local/share/linux-desktop-tails/torrc &
+torpid=$!
+
+as_desk Xvnc :7 -geometry 1280x720 -depth 24 -desktop "Tails" -localhost \
+  -rfbport 5907 -SecurityTypes None -AlwaysShared -FrameRate 20 -nolisten tcp &
+vnc=$!
+i=0
+while [ ! -S /tmp/.X11-unix/X7 ]; do
+  kill -0 "$vnc"
+  i=$((i+1)); [ "$i" -lt 100 ] || exit 1
+  sleep .1
+done
+
+as_desk websockify --web /usr/share/novnc 127.0.0.1:6080 127.0.0.1:5907 &
+ws=$!
+
+unshare -n /usr/local/bin/tails-netns-session &
+apps=$!
+wait "$apps"

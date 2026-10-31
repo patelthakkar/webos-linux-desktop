@@ -1,0 +1,26 @@
+#!/bin/sh
+# Runs as root inside a fresh network namespace. Only loopback exists here.
+# socat bridges the desktop's loopback SOCKS port to Tor's filesystem socket,
+# so an app that ignores the proxy cannot reach anything at all.
+set -eu
+
+export HOME=/home/desk USER=desk LOGNAME=desk DISPLAY=:7
+export XDG_RUNTIME_DIR=/tmp/runtime-desk
+export XDG_SESSION_TYPE=x11 XDG_CURRENT_DESKTOP=XFCE
+export TZ=UTC
+export ALL_PROXY=socks5h://127.0.0.1:9050
+export http_proxy=socks5h://127.0.0.1:9050
+export https_proxy=socks5h://127.0.0.1:9050
+export TORSOCKS_CONF_FILE=/usr/local/share/linux-desktop-tails/torsocks.conf
+
+ip link set lo up
+
+/bin/setpriv --reuid=1000 --regid=1000 --clear-groups \
+  --bounding-set=-all --no-new-privs \
+  /usr/bin/socat TCP4-LISTEN:9050,bind=127.0.0.1,fork,reuseaddr \
+  UNIX-CONNECT:/run/tails/socks.sock &
+
+cd /home/desk
+exec /bin/setpriv --reuid=1000 --regid=1000 --clear-groups \
+  --bounding-set=-all --no-new-privs \
+  /usr/bin/dbus-run-session -- /usr/local/bin/tails-xfce

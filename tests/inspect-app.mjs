@@ -2,7 +2,8 @@
 // Only connects to this project's TV app, never other TV/browser pages.
 import { writeFileSync } from 'node:fs';
 const targets = await (await fetch('http://127.0.0.1:19998/json/list')).json();
-const target = targets.find((page) => /\/applications\/io\.github\.patelthakkar\.linuxdesktop\/index\.html$/.test(page.url));
+const target = targets.find((page) => page.description === 'io.github.patelthakkar.linuxdesktop')
+  || targets.find((page) => /\/applications\/io\.github\.patelthakkar\.linuxdesktop\/index\.html(\?.*)?$/.test(page.url));
 if (!target) throw new Error('Linux Desktop app is not open');
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise((resolve, reject) => {

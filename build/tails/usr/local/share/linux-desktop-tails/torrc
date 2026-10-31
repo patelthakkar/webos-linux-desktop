@@ -1,0 +1,9 @@
+# Client-only Tor for a Tails session. Everything lives in RAM.
+SocksPort 127.0.0.1:9050
+SocksPort unix:/run/tails/socks.sock
+DataDirectory /run/tails/data
+CacheDirectory /run/tails/cache
+Log notice file /run/tails/tor.log
+AvoidDiskWrites 1
+ClientUseIPv6 0
+SafeLogging 1

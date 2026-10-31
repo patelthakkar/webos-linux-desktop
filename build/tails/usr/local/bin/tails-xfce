@@ -1,0 +1,14 @@
+#!/bin/sh
+# XFCE entry point for a Tails session. No disk paths, no host timezone.
+set -eu
+export PATH=/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export HOME=/home/desk USER=desk LOGNAME=desk DISPLAY=:7
+export XDG_RUNTIME_DIR=/tmp/runtime-desk
+export XDG_SESSION_TYPE=x11 XDG_CURRENT_DESKTOP=XFCE
+export LIBGL_ALWAYS_SOFTWARE=1 TZ=UTC
+export ALL_PROXY=socks5h://127.0.0.1:9050
+export http_proxy=socks5h://127.0.0.1:9050
+export https_proxy=socks5h://127.0.0.1:9050
+export TORSOCKS_CONF_FILE=/usr/local/share/linux-desktop-tails/torsocks.conf
+cd "$HOME"
+exec xfce4-session
