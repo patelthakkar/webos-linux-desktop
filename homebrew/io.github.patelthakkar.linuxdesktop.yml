@@ -6,7 +6,10 @@ pool: main
 requirements:
   webosRelease: '>=10.0'
 description: |
-  An Alpine Linux XFCE desktop running on a rooted LG webOS TV, with NetSurf and a small on-desktop App Store. The launcher reports connected USB and Bluetooth input, live system stats, starts fresh sessions, and can run the desktop in RAM with incognito mode.
+  An Alpine Linux XFCE desktop for rooted LG webOS TVs, with a terminal,
+  file manager, and small App Store. Includes live stats, input detection,
+  incognito mode, and optional RAM-only Tor sessions that end when you leave
+  the app.
 
   This package is the launcher. The desktop runtime is a separate, one-time
   install over SSH and is about 137 MB. The app shows a setup guide when the
@@ -15,10 +18,6 @@ description: |
   ![Linux Desktop launcher](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/launcher.png)
 
   ![XFCE on the TV](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/desktop.png)
-
-  ![NetSurf on the TV](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/browser.png)
-
-  ![App Store on the TV](https://raw.githubusercontent.com/patelthakkar/webos-linux-desktop/main/docs/appstore.png)
 
   Tested on an LG webOS TV running webOS 10.3.1. It needs a 64-bit ARM kernel,
   root access, and Homebrew Channel. The desktop is a chroot, not a virtual

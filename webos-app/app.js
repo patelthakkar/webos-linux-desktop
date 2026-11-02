@@ -2,7 +2,7 @@
 
 const BASE = '/var/lib/webosbrew/linux-desktop';
 const GITHUB_SOURCE = 'https://github.com/patelthakkar/webos-linux-desktop';
-const SETUP_URL = `${GITHUB_SOURCE}#install`;
+const SETUP_URL = `${GITHUB_SOURCE}#quick-start`;
 const PROBE = `base=${BASE}; if [ -x "$base/control.sh" ]; then "$base/control.sh" status; else echo missing; fi`;
 const PREVIEW = new URLSearchParams(location.search).get('preview');
 const PREVIEW_INCOGNITO = new URLSearchParams(location.search).get('incognito') === '1';
