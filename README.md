@@ -1,143 +1,92 @@
 # Linux Desktop for webOS TVs
 
-Alpine Linux XFCE on a rooted LG TV, started from a webOS launcher and shown
-through noVNC.
+An Alpine Linux XFCE desktop for rooted LG webOS TVs. Includes a terminal,
+file manager, text editor, and a small App Store. Starts on demand, with no boot
+service.
 
 ![Linux Desktop launcher](docs/launcher.png)
 
-![XFCE on the TV](docs/desktop.png)
+## Requirements
 
-![NetSurf loading HTTPS](docs/browser.png)
+- Rooted LG TV with an ARM64 kernel, webOS 10.0 or newer, and SSH access.
+- About 350 MB free on `/var` and a USB or Bluetooth keyboard and mouse.
+- A computer with `curl`, `ssh`, `scp`, and the webOS CLI configured for your TV.
 
-![The on-desktop App Store](docs/appstore.png)
+Tested on webOS 10.3.1 with 1.7 GB of RAM. No audio or GPU acceleration.
 
-Tested on an LG webOS TV running webOS 10.3.1 with an ARM64 kernel and 1.7 GB of
-RAM. Other rooted ARM64 webOS TVs may work; a 32-bit-only TV will not run it.
+## Quick start
 
-## What you get and need
-- Alpine 3.22, XFCE 4.20, 1280 × 720, software rendered. NetSurf 3.11, Terminal,
-  Thunar, Mousepad, and a small App Store.
-- Settings for live stats, USB and Bluetooth input, incognito, fresh start, and
-  About. On-demand startup with no boot hook.
-- Rooted LG webOS TV with SSH and Homebrew Channel, webOS 10.0 or newer (tested
-  on 10.3.1), about 350 MB free on `/var`, a USB or Bluetooth keyboard and
-  mouse, and network access. The Magic Remote is a pointer, not a keyboard.
-- Install needs `ssh`, `scp`, `curl`. Build needs ARM64 Linux with `sudo`,
-  `curl`, `tar`, `squashfs-tools`, and Node.js 20 or newer.
-## Install
-The Homebrew package is the launcher; the runtime is a separate 137 MB download.
+1. Download the runtime and launcher from [version 1.2.0](https://github.com/patelthakkar/webos-linux-desktop/releases/tag/v1.2.0):
 
-Runtime:
-```sh
-curl -LO https://github.com/patelthakkar/webos-linux-desktop/releases/latest/download/linux-desktop-runtime.tar
-scp linux-desktop-runtime.tar root@YOUR_TV:/tmp/
-ssh root@YOUR_TV 'mkdir -p /var/lib/webosbrew/linux-desktop && tar -xf /tmp/linux-desktop-runtime.tar -C /var/lib/webosbrew/linux-desktop && chmod 755 /var/lib/webosbrew/linux-desktop/*.sh'
-```
+   ```sh
+   curl -fLO https://github.com/patelthakkar/webos-linux-desktop/releases/download/v1.2.0/linux-desktop-runtime.tar
+   curl -fLO https://github.com/patelthakkar/webos-linux-desktop/releases/download/v1.2.0/io.github.patelthakkar.linuxdesktop_1.2.0_all.ipk
+   ```
 
-Check the image with `sha256sum -c rootfs.squashfs.sha256` on the TV, or
-`shasum -a 256 -c` on macOS. `bash tv/install.sh` does the same from source.
+2. Copy and unpack the runtime. Replace `YOUR_TV` with the TV's SSH address:
 
-Launcher:
-```sh
-npm install
-npm run package
-ares-install dist/io.github.patelthakkar.linuxdesktop_1.1.0_all.ipk
-```
+   ```sh
+   scp linux-desktop-runtime.tar root@YOUR_TV:/tmp/
+   ssh root@YOUR_TV 'mkdir -p /var/lib/webosbrew/linux-desktop && tar -xf /tmp/linux-desktop-runtime.tar -C /var/lib/webosbrew/linux-desktop && cd /var/lib/webosbrew/linux-desktop && sha256sum -c rootfs.squashfs.sha256 && chmod 755 *.sh && rm /tmp/linux-desktop-runtime.tar'
+   ```
 
-Add `-d <name>` for multiple `ares` devices. If `ares-install` fails with
-`Unable to exec`, run `TV_HOST=192.0.2.10 python3 tv/install-app.py`.
+3. Install the launcher. Replace `YOUR_DEVICE` with your webOS CLI device name:
 
-Open Linux Desktop and select Start desktop. The first start can take 10 to 20
-seconds. Setup required means the runtime is missing.
+   ```sh
+   ares-install -d YOUR_DEVICE io.github.patelthakkar.linuxdesktop_1.2.0_all.ipk
+   ```
 
-## Settings
-Open the gear in the launcher top bar or the desktop bar.
+4. Open **Linux Desktop** on the TV and choose **Start desktop**. The first start
+   takes about 10 to 20 seconds. If it says **Setup required**, check step 2.
 
-- Show system stats puts 1-minute load, RAM used and total, free `/var`, and
-  uptime in the top bar, refreshed every 6 seconds.
-- Incognito uses a 256 MiB RAM overlay. Stop erases its files. Closing the app
-  leaves it running until Stop. It refuses below 400 MiB free RAM.
-- Fresh start closes the running session before opening the desktop, with a
-  confirmation when work will be lost.
-- About shows Launcher and Runtime 1.1.0, Patel Thakkar, the repository URL, and
-  the Alpine Linux and XFCE versions. Input rows show Detected with the device
-  name, or Not connected; Refresh reads the TV kernel with the stats.
-  Settings save on the TV; Incognito and Fresh start apply next start.
+## Sessions
 
-## Use
-Start desktop, Open desktop, Controls, Stop desktop, and Session log. Files
-under `/home/desk` persist except in incognito; the desktop does not start on
-boot. The 1280 × 720 software-rendered display handles a terminal, text editing,
-the browser, and small tools. It is not for video or gaming.
+Files under `/home/desk` normally persist. Open Settings to change the next start:
 
+- Incognito keeps session files in RAM. **Stop desktop** erases them; closing
+  the app leaves the session running. Needs 400 MiB of available RAM.
+- Fresh start closes the running session before opening a new one.
+- Tor session routes desktop traffic through Tor and keeps session files in a
+  384 MiB RAM overlay. Closing or leaving the app ends it and discards those
+  files. Needs 500 MiB of available RAM.
 
-## App Store
-The bag icon installs extra Alpine packages into the desktop, separate from
-Homebrew Channel. Packages are signed by Alpine and verified by `apk`; the store
-never uses `--allow-untrusted`. Installs persist unless Incognito is on. The
-store refuses below 64 MB free, removes its APK index after every job, protects
-base packages, and accepts only catalog IDs through a root helper. The catalog
-covers terminal tools, a file manager, a calculator, an image viewer, and a
-screenshot tool.
+For Tor, open **Settings > Tor session > Install**, turn on the switch, then
+start the desktop. The optional download is about 5.8 MB and is checked against
+its SHA-256. Accept the first-run notices and use **Test Tor** to check the
+connection. The switch resets after each session. The App Store is disabled in
+Tor sessions; apps that ignore the proxy cannot connect.
 
-## SSH tunnel
-Both ports listen on loopback only:
+Tor applies only to the desktop. The TV firmware and LG services keep their own
+network access. The first-run check reports LG data collection settings but does
+not change them. This session does not protect against the TV firmware.
+
+Tor is included in the 1.2.0 release; its source changes are in [PR #1](https://github.com/patelthakkar/webos-linux-desktop/pull/1).
+
+## Remote access
+
+The display ports listen on loopback only. To open the desktop from a computer:
 
 ```sh
 ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:6080:127.0.0.1:6080 root@YOUR_TV
 ```
 
-Open <http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale>. There is no
-VNC password because neither port is on the LAN; the SSH tunnel authenticates.
+Then open <http://127.0.0.1:6080/vnc.html?autoconnect=true&resize=scale>.
 
 ## Build
-The build needs ARM64 Linux and `sudo`; it does not touch the TV.
+
+On ARM64 Linux with Node.js 20+, `sudo`, `curl`, `tar`, and `squashfs-tools`:
 
 ```sh
 npm install
 bash build/build-rootfs.sh
 npm test
 npm run package
-bash release.sh
 ```
 
-The image is `artifacts/rootfs.squashfs`. Set `DESKTOP_BUILD_DIR` to change the
-build directory. Alpine verifies signed packages, top-level versions are pinned
-in `build/packages.lock`, and the release SHA-256 pins the artifact. Deploy with
-`TV_HOST=192.0.2.10 TV_KEY=~/.ssh/your_tv_key bash tv/install.sh`.
-
-## Release
-Upload everything in `dist/` to a GitHub release tagged with the app version:
-`linux-desktop-runtime.tar`, `io.github.patelthakkar.linuxdesktop_1.1.0_all.ipk`,
-`io.github.patelthakkar.linuxdesktop.manifest.json`, and `SHA256SUMS`. Then fork
-[webosbrew/apps-repo](https://github.com/webosbrew/apps-repo), copy
-`homebrew/io.github.patelthakkar.linuxdesktop.yml` into `packages/`, and open a
-pull request. The URLs assume `patelthakkar/webos-linux-desktop`; update
-`scripts/make-manifest.js`, the Homebrew YAML, and `SETUP_URL` in
-`webos-app/app.js` if you publish under another name.
-
-## Limits
-- No audio, no GPU acceleration, no Firefox or Chromium. NetSurf is limited and
-  the App Store catalog is curated and does not auto-update packages.
-- ARM64 only. The launcher refuses below 96 MB free on `/var`; a running session
-  stops below 64 MB.
-- Input detection reads the TV kernel. Passing those devices into the chroot is
-  not supported. The chroot shares the TV kernel and network; do not run
-  untrusted software.
-- The TV's 1.7 GB of RAM is shared with webOS. Close other apps and stop the
-  desktop when you are not using it.
-
-## Uninstall
-```sh
-TV_HOST=192.0.2.10 python3 tv/remove-app.py
-ssh root@YOUR_TV '/var/lib/webosbrew/linux-desktop/control.sh stop'
-ssh root@YOUR_TV 'rm -rf /var/lib/webosbrew/linux-desktop'
-```
-
-The runtime adds no boot service. App Store packages live inside the same
-directory; back up anything in `/home/desk` first.
+The Tor layer build and release packaging scripts are in the 1.2.0 source branch
+linked above. The desktop shares the TV kernel; it is not a virtual machine.
 
 ## License
-The launcher and build scripts are MIT licensed. See `LICENSE`. The runtime
-contains third-party packages under their own licenses. See `THIRD-PARTY.md`
-before redistributing the runtime image.
+
+The launcher and scripts are [MIT licensed](LICENSE). Runtime packages have
+their own licenses; see [THIRD-PARTY.md](THIRD-PARTY.md).
