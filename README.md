@@ -70,13 +70,6 @@ under `/home/desk` persist except in incognito; the desktop does not start on
 boot. The 1280 × 720 software-rendered display handles a terminal, text editing,
 the browser, and small tools. It is not for video or gaming.
 
-## Browser
-NetSurf is on the panel and in the Applications menu. HTTPS uses the system CA
-certificates, and downloads go to `/home/desk/Downloads`. Simple sites render;
-JavaScript-heavy sites, video, and many web apps do not. The download dialog
-uses stock labels such as `document-save`; choose the left save button. There is
-no tab sandbox, ad blocking, or password manager. Do not use it for banking,
-email, or sites that need a current browser.
 
 ## App Store
 The bag icon installs extra Alpine packages into the desktop, separate from
