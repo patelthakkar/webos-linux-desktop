@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the optional Tails layer: Tor, torsocks, socat, iproute2, and the
+# Build the optional Tor layer: Tor, torsocks, socat, iproute2, and the
 # session scripts. It is a read-only squashfs mounted over the runtime rootfs.
 set -euo pipefail
 cd "$(dirname "$0")/.."

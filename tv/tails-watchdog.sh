@@ -1,5 +1,5 @@
 #!/bin/sh
-# Ends a Tails session when the launcher stops sending heartbeats.
+# Ends a Tor session when the launcher stops sending heartbeats.
 # Started detached by control.sh; never starts anything by itself.
 set -eu
 # control.sh holds its lock on fd 9. Never inherit it: this script calls back

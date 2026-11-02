@@ -1,4 +1,4 @@
-# Client-only Tor for a Tails session. Everything lives in RAM.
+# Client-only Tor for the desktop session. Everything lives in RAM.
 SocksPort 127.0.0.1:9050
 SocksPort unix:/run/tails/socks.sock
 DataDirectory /run/tails/data

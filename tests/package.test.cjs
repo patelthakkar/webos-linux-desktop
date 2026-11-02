@@ -61,7 +61,7 @@ test('telemetry check reports LG collection and the local blocker', () => {
   assert.equal(clean.items.find((item) => item.key === 'liveplus').state, 'off');
 });
 
-test('Tails session is wired through the launcher, runtime, and layer', () => {
+test('Tor session is wired through the launcher, runtime, and layer', () => {
   const control = readFileSync(path.join(root, 'tv/control.sh'), 'utf8');
   for (const token of ['tails-install', 'tails-remove', 'tails-status', 'tails-ack', 'tails-net',
     'tails-heartbeat', 'TAILS_HB_TIMEOUT', 'tails.squashfs']) {
@@ -71,7 +71,7 @@ test('Tails session is wired through the launcher, runtime, and layer', () => {
 
   const namespace = readFileSync(path.join(root, 'tv/namespace.sh'), 'utf8');
   assert.ok(namespace.includes('$BASE/tails.squashfs'), 'the layer is mounted read-only');
-  assert.ok(namespace.includes('size=384m'), 'Tails gets a larger RAM overlay');
+  assert.ok(namespace.includes('size=384m'), 'Tor sessions get a larger RAM overlay');
   assert.ok(namespace.includes('tails-desktop-session'));
 
   const watchdog = readFileSync(path.join(root, 'tv/tails-watchdog.sh'), 'utf8');
@@ -101,6 +101,21 @@ test('App Store catalog and package-helper tests pass', () => {
     cwd: root,
     stdio: 'pipe',
   });
+});
+
+test('public copy names the Tor session without OS branding', () => {
+  for (const file of ['README.md', 'THIRD-PARTY.md', 'webos-app/index.html',
+    'webos-app/app.js', 'webos-app/appinfo.json', 'tv/control.sh',
+    'build/tails/usr/local/bin/tails-desktop-session',
+    'homebrew/io.github.patelthakkar.linuxdesktop.yml']) {
+    assert.doesNotMatch(readFileSync(path.join(root, file), 'utf8'), /\bTails\b/);
+  }
+  const readme = readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.match(readme, /## Quick start/);
+  assert.doesNotMatch(readme, /## Browser|docs\/browser\.png/);
+  const html = readFileSync(path.join(root, 'webos-app/index.html'), 'utf8');
+  assert.ok(html.includes('<h3 id="settings-tails">Tor session</h3>'));
+  assert.ok(html.includes('Before your first Tor session'));
 });
 
 test('runtime stays lightweight and uses signed packages only', () => {
@@ -191,7 +206,7 @@ test('input parser separates USB and Bluetooth HID and ignores virtual remotes',
 });
 
 test('README screenshots exist at the published size', () => {
-  for (const name of ['launcher', 'desktop', 'browser', 'appstore', 'tails-settings', 'tails-notice', 'tails-telemetry']) {
+  for (const name of ['launcher', 'desktop', 'browser', 'appstore', 'tor-settings', 'tor-notice', 'tor-telemetry']) {
     const size = pngSize(path.join(root, 'docs', `${name}.png`));
     assert.deepEqual(size, { width: 1600, height: 900 });
   }

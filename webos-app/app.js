@@ -2,7 +2,7 @@
 
 const BASE = '/var/lib/webosbrew/linux-desktop';
 const GITHUB_SOURCE = 'https://github.com/patelthakkar/webos-linux-desktop';
-const SETUP_URL = `${GITHUB_SOURCE}#install`;
+const SETUP_URL = `${GITHUB_SOURCE}#quick-start`;
 const PROBE = `base=${BASE}; if [ -x "$base/control.sh" ]; then "$base/control.sh" status; else echo missing; fi`;
 const PREVIEW = new URLSearchParams(location.search).get('preview');
 const PREVIEW_INCOGNITO = new URLSearchParams(location.search).get('incognito') === '1';
@@ -307,7 +307,7 @@ async function command(action) {
     if (action === 'tails-install') {
       tails.installed = true;
       tails.version = APP_VERSION;
-      tails.bytes = 12900000;
+      tails.bytes = 5980160;
       return 'installed';
     }
     if (action === 'tails-remove') {
@@ -470,7 +470,7 @@ async function refreshTails() {
     tails.installed = PREVIEW_TAILS !== '' || tails.installed;
     if (PREVIEW_TAILS) {
       tails.version = APP_VERSION;
-      tails.bytes = 12900000;
+      tails.bytes = 5980160;
       tails.telemetry = tails.telemetry || previewTelemetry();
     }
   }
@@ -493,23 +493,23 @@ async function refreshTails() {
 
 function applyTails() {
   const installed = Boolean(tails.installed);
-  tailsName.textContent = installed ? 'Tails is installed' : 'Not installed';
+  tailsName.textContent = installed ? 'Tor session is installed' : 'Not installed';
   if (tailsError) {
     tailsNote.textContent = tailsError;
   } else if (tailsInstalling) {
     tailsNote.textContent = 'Downloading and checking the Tor session. This happens once.';
   } else if (installed) {
     const size = formatBytes(tails.bytes);
-    tailsNote.textContent = `${size ? `${size} · ` : ''}Tor-only desktop in RAM. Nothing is written to the TV.`;
+    tailsNote.textContent = `${size ? `${size} · ` : ''}Tor-only desktop. Session files stay in RAM.`;
   } else {
     tailsNote.textContent = 'A Tor-only desktop that lives in RAM and ends when you leave this app.';
   }
   tailsInstall.hidden = installed;
   tailsInstall.disabled = tailsInstalling;
-  tailsInstall.textContent = tailsInstalling ? 'Installing…' : 'Install Tails';
+  tailsInstall.textContent = tailsInstalling ? 'Installing…' : 'Install Tor session';
   tailsSetting.hidden = !installed;
   tailsMeta.hidden = !installed;
-  tailsMetaState.textContent = installed && tails.version ? `Tails ${tails.version}` : installed ? 'Installed' : '';
+  tailsMetaState.textContent = installed && tails.version ? `Tor session ${tails.version}` : installed ? 'Installed' : '';
   tailsSetting.setAttribute('aria-checked', String(Boolean(installed && settings.tails)));
 
   const active = ['running', 'starting'].includes(state.name);
@@ -519,8 +519,8 @@ function applyTails() {
   } else {
     tailsHint.hidden = false;
     if (tailMode) tailsHint.textContent = 'This session is in RAM. Closing the app ends it and erases it.';
-    else if (active) tailsHint.textContent = 'Stop the current session first. Tails starts next time.';
-    else tailsHint.textContent = 'The next start opens Tails. The toggle resets after that session.';
+    else if (active) tailsHint.textContent = 'Stop the current session first. The Tor session starts next time.';
+    else tailsHint.textContent = 'The next start opens a Tor session. The switch resets afterwards.';
   }
   if (!installed) {
     tailsNetState.textContent = '';
@@ -632,7 +632,7 @@ function openTelemetryDialog() {
     row.append(name, flag);
     telemetryList.append(row);
   }
-  let copy = 'LG data collection is not fully off. Check these before the first Tails session.';
+  let copy = 'LG data collection is not fully off. Check these before your first Tor session.';
   if (!on.length) copy = 'The usual LG data collection switches look off, but the TV could not confirm everything.';
   if (unknown.length) copy += ` ${unknown.length} setting${unknown.length === 1 ? '' : 's'} could not be read.`;
   $('tails-telemetry-copy').textContent = copy;
@@ -701,7 +701,7 @@ function clearTailsToggle() {
   applyTails();
 }
 
-// A Tails toggle is one session only. If the launcher was closed or the TV
+// The Tor switch is one session only. If the launcher was closed or the TV
 // restarted, the next open is a normal XFCE launcher.
 async function bootTails() {
   const status = await refreshTails();
@@ -757,17 +757,17 @@ function updateModeUI() {
   const tailsMode = active && stats && stats.mode === 'tails';
   modeBadge.hidden = !(incognito || tailsMode);
   modeBadge.classList.toggle('badge--tails', Boolean(tailsMode));
-  modeBadgeText.textContent = tailsMode ? 'Tails · Tor' : 'Incognito';
+  modeBadgeText.textContent = tailsMode ? 'Tor session' : 'Incognito';
   screenMode.hidden = !(incognito || tailsMode);
   screenMode.classList.toggle('badge--tails', Boolean(tailsMode));
-  screenModeText.textContent = tailsMode ? 'Tails · Tor · RAM only' : 'Incognito · RAM only';
-  factMode.textContent = tailsMode ? 'Tails' : incognito ? 'Incognito' : 'Persistent';
+  screenModeText.textContent = tailsMode ? 'Tor session · RAM only' : 'Incognito · RAM only';
+  factMode.textContent = tailsMode ? 'Tor session' : incognito ? 'Incognito' : 'Persistent';
   factMode.classList.toggle('is-incognito', Boolean(incognito || tailsMode));
-  persistNote.textContent = tailsMode ? 'Tails · RAM only' : incognito ? 'Incognito · RAM only' : 'Files persist';
+  persistNote.textContent = tailsMode ? 'Tor session · RAM only' : incognito ? 'Incognito · RAM only' : 'Files persist';
   persistNote.classList.toggle('is-incognito', Boolean(incognito));
   persistNote.classList.toggle('is-tails', Boolean(tailsMode));
   if (state.name === 'running') {
-    if (tailsMode) hint.textContent = 'Closing this app ends the Tails session and erases it.';
+    if (tailsMode) hint.textContent = 'Closing this app ends the Tor session and erases its files.';
     else if (incognito) hint.textContent = 'Closing this app leaves the incognito session running in RAM until you stop it.';
   }
   updateIncognitoHint();
@@ -783,7 +783,7 @@ function render() {
   lede.textContent = state.detail || current.lede;
   let hintText = state.hint || current.hint;
   if (state.name === 'running' && stats && stats.mode === 'tails') {
-    hintText = 'Closing this app ends the Tails session and erases it.';
+    hintText = 'Closing this app ends the Tor session and erases its files.';
   } else if (state.name === 'running' && stats && stats.mode === 'incognito') {
     hintText = 'Closing this app leaves the incognito session running in RAM until you stop it.';
   }
@@ -929,7 +929,7 @@ async function startDesktop() {
   if (settings.tails) {
     const status = await refreshTails();
     if (!status.installed) {
-      setState('error', 'Tails is not installed. Install it from Settings, then try again.');
+      setState('error', 'Tor session is not installed. Install it from Settings, then try again.');
       return;
     }
     if (status.telemetry && !status.telemetry.ok && !status.telemetryAck) {
@@ -951,7 +951,7 @@ async function beginStart() {
   opening = true;
   if (settings.tails) tailsRan = true;
   setState('starting', '', settings.tails
-    ? 'Starting Tails. Tor takes a few seconds to connect.'
+    ? 'Starting a Tor session. Tor takes a few seconds to connect.'
     : settings.incognito ? 'Starting an incognito session in RAM.' : '');
   startDeadline = Date.now() + 90000;
   try {
@@ -1111,17 +1111,17 @@ function openStopConfirm(reason = 'stop') {
   const active = ['running', 'starting'].includes(state.name);
   const tailsMode = Boolean(stats && stats.mode === 'tails' && active);
   const incognito = Boolean(stats && stats.mode === 'incognito' && active);
-  confirmTitle.textContent = fresh ? 'Start fresh?' : tailsMode ? 'End the Tails session?' : 'Stop the desktop?';
+  confirmTitle.textContent = fresh ? 'Start fresh?' : tailsMode ? 'End the Tor session?' : 'Stop the desktop?';
   confirmCopy.textContent = fresh
     ? 'The running desktop will close, then a clean session will start. Open applications will lose unsaved work.'
     : 'Open applications will close. Save your work before continuing.';
   const extra = [];
   if (fresh) extra.push('A clean session starts after the current one closes.');
-  if (tailsMode) extra.push('This session is in RAM and bound to the app. Stopping it erases it, and the Tails toggle turns off.');
+  if (tailsMode) extra.push('Stopping erases the session files in RAM and turns off the Tor session switch.');
   else if (incognito) extra.push('This session is in RAM. Stopping it erases its files and changes.');
   confirmExtra.textContent = extra.join(' ');
   confirmExtra.hidden = !extra.length;
-  confirmStop.textContent = fresh ? 'Start fresh' : tailsMode ? 'End Tails' : 'Stop desktop';
+  confirmStop.textContent = fresh ? 'Start fresh' : tailsMode ? 'End Tor session' : 'Stop desktop';
   confirmStop.className = fresh ? 'btn btn-primary' : 'btn btn-danger';
   cancelStop.className = fresh ? 'btn btn-secondary' : 'btn btn-primary';
   lastFocus = document.activeElement;
@@ -1359,7 +1359,7 @@ if (PREVIEW) {
   if (PREVIEW_TAILS) {
     tails.installed = true;
     tails.version = APP_VERSION;
-    tails.bytes = 12900000;
+    tails.bytes = 5980160;
     tails.telemetry = previewTelemetry();
     tails.ack = PREVIEW_TAILS !== 'notice' && PREVIEW_TAILS !== 'telemetry';
     tails.telemetryAck = tails.ack;

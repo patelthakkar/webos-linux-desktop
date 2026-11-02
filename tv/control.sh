@@ -87,7 +87,7 @@ inputs() {
   fi
 }
 
-# --- Tails -------------------------------------------------------------
+# --- Tor session -------------------------------------------------------
 
 tails_installed() {
   [ -r "$TAILS_LAYER" ] && [ -s "$TAILS_LAYER" ]
@@ -149,19 +149,19 @@ tails_install() {
     fi
   else
     curl -fL --retry 3 --max-time 600 "$TAILS_URL" -o "$part" >/dev/null 2>&1 || {
-      rm -f "$part"; echo 'Tails download failed' >&2; exit 1;
+      rm -f "$part"; echo 'Tor session download failed' >&2; exit 1;
     }
     curl -fsSL --retry 3 --max-time 60 "$TAILS_URL.sha256" -o "$sum" >/dev/null 2>&1 || {
-      rm -f "$part" "$sum"; echo 'Tails checksum download failed' >&2; exit 1;
+      rm -f "$part" "$sum"; echo 'Tor session checksum download failed' >&2; exit 1;
     }
   fi
   want=$(awk '{print $1; exit}' "$sum")
   case "$want" in
-    *[!0-9a-f]*|'') rm -f "$part" "$sum"; echo 'Invalid Tails checksum' >&2; exit 1;;
+    *[!0-9a-f]*|'') rm -f "$part" "$sum"; echo 'Invalid Tor session checksum' >&2; exit 1;;
   esac
-  [ ${#want} -eq 64 ] || { rm -f "$part" "$sum"; echo 'Invalid Tails checksum' >&2; exit 1; }
+  [ ${#want} -eq 64 ] || { rm -f "$part" "$sum"; echo 'Invalid Tor session checksum' >&2; exit 1; }
   got=$(sha256sum "$part" | awk '{print $1}')
-  [ "$got" = "$want" ] || { rm -f "$part" "$sum"; echo 'Tails checksum mismatch' >&2; exit 1; }
+  [ "$got" = "$want" ] || { rm -f "$part" "$sum"; echo 'Tor session checksum mismatch' >&2; exit 1; }
   mv "$part" "$TAILS_LAYER"
   printf '%s\n' "$want" > "$TAILS_DIR/layer.sha256"
   rm -f "$sum" "$TAILS_STATE"
@@ -171,7 +171,7 @@ tails_install() {
 
 tails_remove() {
   if running && [ "$(mode)" = tails ]; then
-    echo 'Stop the Tails session before removing it' >&2; exit 1
+    echo 'Stop the Tor session before removing it' >&2; exit 1
   fi
   rm -f "$TAILS_LAYER" "$TAILS_DIR/layer.sha256"
   rm -f "$TAILS_STATE"
@@ -187,7 +187,7 @@ tails_ack() {
 }
 
 tails_heartbeat() {
-  running && [ "$(mode)" = tails ] || { echo 'No Tails session' >&2; exit 1; }
+  running && [ "$(mode)" = tails ] || { echo 'No Tor session' >&2; exit 1; }
   mkdir -p "$TAILS_DIR"
   # Atomic replace: a short read must never look like a stale heartbeat.
   date +%s > "$TAILS_HEARTBEAT.new"
@@ -222,13 +222,13 @@ tails_watchdog_stop() {
 }
 
 tail_check_start() {
-  tails_installed || { echo 'Tails is not installed' >&2; exit 3; }
-  [ "$(tails_get ack)" = 1 ] || { echo 'Tails first-run notice not accepted' >&2; exit 4; }
+  tails_installed || { echo 'Tor session is not installed' >&2; exit 3; }
+  [ "$(tails_get ack)" = 1 ] || { echo 'Tor session first-run notice not accepted' >&2; exit 4; }
   if [ "$(tails_get telemetry_ack)" != 1 ]; then
     tm=$(tails_telemetry)
     case "$tm" in
       *'"ok":true'*) ;;
-      *) echo 'Tails telemetry warning not accepted' >&2; exit 5;;
+      *) echo 'Tor session telemetry warning not accepted' >&2; exit 5;;
     esac
   fi
 }
@@ -261,7 +261,7 @@ case "${1:-status}" in
     [ -r "$BASE/rootfs.squashfs" ] || { echo 'Missing rootfs' >&2; exit 1; }
     if [ "$new_mode" = tails ]; then
       tail_check_start
-      [ -r "$BASE/tails.squashfs" ] || { echo 'Tails is not installed' >&2; exit 3; }
+      [ -r "$BASE/tails.squashfs" ] || { echo 'Tor session is not installed' >&2; exit 3; }
     fi
     free_kb=$(df -k "$BASE" | awk 'END {print $4}')
     [ "$free_kb" -ge 98304 ] || { echo 'Less than 96 MiB free: refusing start' >&2; exit 1; }

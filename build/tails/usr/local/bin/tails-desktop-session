@@ -1,5 +1,5 @@
 #!/bin/sh
-# Root process inside the chroot for a Tails session.
+# Root process inside the chroot for a Tor session.
 # Tor and the display stay on the TV's network namespace. The desktop runs in
 # a second namespace that has nothing but loopback and a SOCKS bridge to Tor.
 set -eu
@@ -37,7 +37,7 @@ as_desk() {
 as_desk /usr/bin/tor -f /usr/local/share/linux-desktop-tails/torrc &
 torpid=$!
 
-as_desk Xvnc :7 -geometry 1280x720 -depth 24 -desktop "Tails" -localhost \
+as_desk Xvnc :7 -geometry 1280x720 -depth 24 -desktop "Tor session" -localhost \
   -rfbport 5907 -SecurityTypes None -AlwaysShared -FrameRate 20 -nolisten tcp &
 vnc=$!
 i=0

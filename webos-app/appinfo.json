@@ -5,7 +5,7 @@
   "type": "web",
   "main": "index.html",
   "title": "Linux Desktop",
-  "appDescription": "An Alpine Linux desktop for rooted webOS TVs, with live stats, input detection, fresh starts, incognito sessions, and a Tails-style Tor mode.",
+  "appDescription": "An Alpine Linux desktop for rooted webOS TVs, with an App Store and optional RAM-only Tor sessions.",
   "icon": "icon.png",
   "largeIcon": "icon-130.png",
   "iconColor": "#0d100f",

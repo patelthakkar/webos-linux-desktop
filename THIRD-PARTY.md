@@ -21,8 +21,8 @@ Main components:
 | PyGObject | LGPL-2.1-or-later | https://pygobject.gnome.org/ |
 | Python 3 | PSF-2.0 | https://www.python.org/ |
 
-The optional Tails layer (`linux-desktop-tails.squashfs`) is a separate Alpine
-package set that is mounted read-only over the runtime only for a Tails session.
+The optional Tor layer is a separate Alpine package set, mounted read-only over
+the runtime during a Tor session.
 It adds:
 
 | Component | License | Source |
@@ -33,9 +33,7 @@ It adds:
 | iproute2 6.15 | GPL-2.0-only | https://www.kernel.org/pub/linux/utils/net/iproute2/ |
 | libevent, OpenSSL, libcap, libseccomp, libmnl, libxtables | BSD, Apache-2.0, and others | https://pkgs.alpinelinux.org/ |
 
-The Tails session scripts in `build/tails/` are part of this repository and are
-MIT licensed with the rest of the launcher. This project is not affiliated with
-the Tails project and does not ship the official Tails ISO.
+The Tor session scripts are MIT licensed with the rest of the launcher.
 
 The App Store installs additional Alpine packages on demand. Each installed
 package remains under its own license and is recorded by `apk`. The App Store

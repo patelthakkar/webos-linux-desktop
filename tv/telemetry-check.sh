@@ -1,5 +1,5 @@
 #!/bin/sh
-# Read-only LG data-collection check for the Tails first-run warning.
+# Read-only LG data-collection check for the Tor session's first-run warning.
 # Runs on the TV. LINUX_DESKTOP_PREFS points at a fixture directory for tests.
 set -eu
 PATH=/usr/sbin:/usr/bin:/sbin:/bin

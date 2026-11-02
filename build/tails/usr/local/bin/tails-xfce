@@ -1,5 +1,5 @@
 #!/bin/sh
-# XFCE entry point for a Tails session. No disk paths, no host timezone.
+# XFCE entry point for a Tor session. No disk paths, no host timezone.
 set -eu
 export PATH=/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export HOME=/home/desk USER=desk LOGNAME=desk DISPLAY=:7
