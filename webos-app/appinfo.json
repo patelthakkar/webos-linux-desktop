@@ -5,7 +5,7 @@
   "type": "web",
   "main": "index.html",
   "title": "Linux Desktop",
-  "appDescription": "An Alpine Linux desktop for rooted webOS TVs, with an App Store and optional RAM-only Tor sessions.",
+  "appDescription": "An Alpine Linux desktop for rooted webOS TVs, with an App Store and experimental RAM-only Tor sessions.",
   "icon": "icon.png",
   "largeIcon": "icon-130.png",
   "iconColor": "#0d100f",

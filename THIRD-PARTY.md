@@ -21,7 +21,7 @@ Main components:
 | PyGObject | LGPL-2.1-or-later | https://pygobject.gnome.org/ |
 | Python 3 | PSF-2.0 | https://www.python.org/ |
 
-The optional Tor layer is a separate Alpine package set, mounted read-only over
+The experimental Tor layer is a separate Alpine package set, mounted read-only over
 the runtime during a Tor session.
 It adds:
 
