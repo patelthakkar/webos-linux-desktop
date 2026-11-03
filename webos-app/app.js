@@ -497,12 +497,12 @@ function applyTails() {
   if (tailsError) {
     tailsNote.textContent = tailsError;
   } else if (tailsInstalling) {
-    tailsNote.textContent = 'Downloading and checking the Tor session. This happens once.';
+    tailsNote.textContent = 'Downloading and checking the Tor layer. This happens once.';
   } else if (installed) {
     const size = formatBytes(tails.bytes);
-    tailsNote.textContent = `${size ? `${size} · ` : ''}Tor-only desktop. Session files stay in RAM.`;
+    tailsNote.textContent = `${size ? `${size} · ` : ''}Experimental. Session files stay in RAM.`;
   } else {
-    tailsNote.textContent = 'A Tor-only desktop that lives in RAM and ends when you leave this app.';
+    tailsNote.textContent = 'A desktop with all traffic through Tor. Session files stay in RAM and go away when you leave this app.';
   }
   tailsInstall.hidden = installed;
   tailsInstall.disabled = tailsInstalling;
@@ -518,9 +518,9 @@ function applyTails() {
     tailsHint.hidden = true;
   } else {
     tailsHint.hidden = false;
-    if (tailMode) tailsHint.textContent = 'This session is in RAM. Closing the app ends it and erases it.';
-    else if (active) tailsHint.textContent = 'Stop the current session first. The Tor session starts next time.';
-    else tailsHint.textContent = 'The next start opens a Tor session. The switch resets afterwards.';
+    if (tailMode) tailsHint.textContent = 'This session is in RAM. Closing the app ends it and wipes it.';
+    else if (active) tailsHint.textContent = 'Stop the current session first. Tor starts next time.';
+    else tailsHint.textContent = 'The next start will use Tor. The switch turns off after that.';
   }
   if (!installed) {
     tailsNetState.textContent = '';
@@ -767,7 +767,7 @@ function updateModeUI() {
   persistNote.classList.toggle('is-incognito', Boolean(incognito));
   persistNote.classList.toggle('is-tails', Boolean(tailsMode));
   if (state.name === 'running') {
-    if (tailsMode) hint.textContent = 'Closing this app ends the Tor session and erases its files.';
+    if (tailsMode) hint.textContent = 'Closing this app ends the Tor session and wipes its files.';
     else if (incognito) hint.textContent = 'Closing this app leaves the incognito session running in RAM until you stop it.';
   }
   updateIncognitoHint();
@@ -783,7 +783,7 @@ function render() {
   lede.textContent = state.detail || current.lede;
   let hintText = state.hint || current.hint;
   if (state.name === 'running' && stats && stats.mode === 'tails') {
-    hintText = 'Closing this app ends the Tor session and erases its files.';
+    hintText = 'Closing this app ends the Tor session and wipes its files.';
   } else if (state.name === 'running' && stats && stats.mode === 'incognito') {
     hintText = 'Closing this app leaves the incognito session running in RAM until you stop it.';
   }
@@ -1117,7 +1117,7 @@ function openStopConfirm(reason = 'stop') {
     : 'Open applications will close. Save your work before continuing.';
   const extra = [];
   if (fresh) extra.push('A clean session starts after the current one closes.');
-  if (tailsMode) extra.push('Stopping erases the session files in RAM and turns off the Tor session switch.');
+  if (tailsMode) extra.push('Stopping wipes the session files in RAM and turns off the Tor session switch.');
   else if (incognito) extra.push('This session is in RAM. Stopping it erases its files and changes.');
   confirmExtra.textContent = extra.join(' ');
   confirmExtra.hidden = !extra.length;

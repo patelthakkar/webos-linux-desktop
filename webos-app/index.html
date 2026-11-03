@@ -165,7 +165,7 @@ session.</h1>
       <h2 id="tails-telemetry-title">This TV still collects data.</h2>
       <p class="confirm-copy" id="tails-telemetry-copy">LG data collection is not fully off. Check these before your first Tor session.</p>
       <ul class="data-list" id="tails-telemetry-list"></ul>
-      <p class="confirm-extra">Turn them off under Settings &rarr; General on the TV. Tor routes desktop traffic only. The TV firmware can still see the screen.</p>
+      <p class="confirm-extra">Turn them off under Settings &rarr; General on the TV. Tor covers desktop traffic only, and the TV firmware can still see the screen.</p>
       <div class="confirm-actions">
         <button class="btn btn-secondary" id="tails-telemetry-cancel" data-focusable>Go back</button>
         <button class="btn btn-primary" id="tails-telemetry-continue" data-focusable>Continue anyway</button>
@@ -177,11 +177,12 @@ session.</h1>
     <div class="confirm-panel confirm-panel--wide">
       <h2 id="tails-notice-title">Before your first Tor session</h2>
       <ul class="notice-list">
+        <li>The Tor session is experimental and may change between releases.</li>
         <li>Session files stay in RAM and are erased when the session ends.</li>
         <li>Closing or leaving this app ends the session. If the launcher stops responding, it ends within 30 seconds.</li>
-        <li>The switch resets after each session. Turn it on again for another Tor session.</li>
+        <li>The switch turns itself off after the session, so you pick it again each time.</li>
         <li>Desktop traffic goes through Tor. Apps that ignore the proxy cannot connect.</li>
-        <li>The TV firmware and LG services remain outside the session and keep their network access.</li>
+        <li>The TV firmware and LG services stay outside the session and keep their network access.</li>
       </ul>
       <div class="confirm-actions">
         <button class="btn btn-secondary" id="tails-notice-cancel" data-focusable>Not now</button>
@@ -233,18 +234,18 @@ session.</h1>
       </section>
 
       <section class="settings-group settings-group--tails" aria-labelledby="settings-tails">
-        <h3 id="settings-tails">Tor session</h3>
+        <h3 id="settings-tails">Tor session <span class="section-tag">Experimental</span></h3>
         <div class="tails-head">
           <div class="tails-copy">
             <p class="setting-name" id="tails-name">Not installed</p>
-            <p class="setting-note" id="tails-note">A Tor-only desktop that lives in RAM and ends when you leave this app.</p>
+            <p class="setting-note" id="tails-note">A desktop with all traffic through Tor. Session files stay in RAM and go away when you leave this app.</p>
           </div>
           <button class="btn btn-small" id="tails-install" data-focusable>Install</button>
         </div>
         <button class="setting" type="button" data-setting="tails" role="switch" aria-checked="false" data-focusable id="tails-setting" hidden>
           <span class="setting-copy">
-            <span class="setting-name">Tor session <span class="setting-tag">RAM only</span></span>
-            <span class="setting-note">Opens the Tor desktop on the next start. It ends when this app closes.</span>
+            <span class="setting-name">Use Tor on the next start <span class="setting-tag">RAM only</span></span>
+            <span class="setting-note">The session ends when this app closes.</span>
             <span class="setting-note setting-note--accent" id="tails-hint" hidden></span>
           </span>
           <span class="switch" aria-hidden="true"><span class="switch-thumb"></span></span>
@@ -266,14 +267,14 @@ session.</h1>
             <p class="about-version"><span id="about-launcher">Launcher 1.2.0</span><span class="about-sep">·</span><span id="about-runtime">Runtime checking</span></p>
           </div>
         </div>
-        <p class="about-copy">Built by Patel Thakkar.</p>
+        <p class="about-copy">Built by the Linux Desktop contributors.</p>
         <dl class="about-facts">
           <div><dt>Base</dt><dd>Alpine Linux 3.22</dd></div>
           <div><dt>Desktop</dt><dd>XFCE 4.20</dd></div>
           <div><dt>Session</dt><dd>On demand</dd></div>
         </dl>
         <button class="about-link about-link--source" id="about-source" data-focusable>
-          <span>github.com/patelthakkar/<wbr>webos-linux-desktop</span>
+          <span>Source on GitHub</span>
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-8 8"/><path d="M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5"/></svg>
         </button>
       </section>

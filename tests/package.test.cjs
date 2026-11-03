@@ -17,7 +17,7 @@ test('TV package has valid metadata and correctly sized icons', () => {
   assert.equal(app.id, 'io.github.patelthakkar.linuxdesktop');
   assert.equal(app.type, 'web');
   assert.equal(app.resolution, '1920x1080');
-  assert.equal(app.vendor, 'Patel Thakkar');
+  assert.equal(app.vendor, 'Linux Desktop contributors');
   readFileSync(path.join(root, 'webos-app', app.main));
   assert.deepEqual(pngSize(path.join(root, 'webos-app', app.icon)), { width: 80, height: 80 });
   assert.deepEqual(pngSize(path.join(root, 'webos-app', app.largeIcon)), { width: 130, height: 130 });
@@ -114,7 +114,7 @@ test('public copy names the Tor session without OS branding', () => {
   assert.match(readme, /## Quick start/);
   assert.doesNotMatch(readme, /## Browser|docs\/browser\.png/);
   const html = readFileSync(path.join(root, 'webos-app/index.html'), 'utf8');
-  assert.ok(html.includes('<h3 id="settings-tails">Tor session</h3>'));
+  assert.ok(html.includes('<h3 id="settings-tails">Tor session <span class="section-tag">Experimental</span></h3>'));
   assert.ok(html.includes('Before your first Tor session'));
 });
 

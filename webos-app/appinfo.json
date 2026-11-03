@@ -1,7 +1,7 @@
 {
   "id": "io.github.patelthakkar.linuxdesktop",
   "version": "1.2.0",
-  "vendor": "Patel Thakkar",
+  "vendor": "Linux Desktop contributors",
   "type": "web",
   "main": "index.html",
   "title": "Linux Desktop",
