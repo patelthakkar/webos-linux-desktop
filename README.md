@@ -66,7 +66,7 @@ Tor only covers the desktop. The TV firmware and LG services keep their own
 network access and can still see the screen. The first-run check reports LG
 data collection settings; it does not change them.
 
-Tor shipped in 1.2.0. The source changes are in [PR #1](https://github.com/patelthakkar/webos-linux-desktop/pull/1).
+Tor shipped in 1.2.0. The source is on `main`.
 
 ## Remote access
 
@@ -89,8 +89,8 @@ npm test
 npm run package
 ```
 
-Build scripts for the experimental Tor layer are in PR #1. The desktop shares
-the TV kernel; it is not a virtual machine.
+Build scripts for the experimental Tor layer are in `build/build-tails.sh`. The
+desktop shares the TV kernel; it is not a virtual machine.
 
 ## License
 
