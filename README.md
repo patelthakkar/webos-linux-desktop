@@ -48,22 +48,25 @@ Files under `/home/desk` normally persist. Open Settings to change the next star
 - Incognito keeps session files in RAM. **Stop desktop** erases them; closing
   the app leaves the session running. Needs 400 MiB of available RAM.
 - Fresh start closes the running session before opening a new one.
-- Tor session routes desktop traffic through Tor and keeps session files in a
-  384 MiB RAM overlay. Closing or leaving the app ends it and discards those
-  files. Needs 500 MiB of available RAM.
+- Tor session (experimental) sends desktop traffic through Tor and keeps session
+  files in a 384 MiB RAM overlay. Closing or leaving the app ends it and discards
+  those files. Needs 500 MiB of available RAM.
 
-The **Settings > Tor session > Install** button needs public release downloads.
-While this repo is private, [install the layer manually](docs/manual-tor-install.md).
-Then turn on the Tor session switch and start the desktop. The optional layer is
-about 5.8 MB and is checked against its SHA-256. Accept the first-run notices and
-use **Test Tor** to check the connection. The switch resets after each session.
-The App Store is disabled in Tor sessions; apps that ignore the proxy cannot connect.
+The Tor session is experimental and may change between releases.
 
-Tor applies only to the desktop. The TV firmware and LG services keep their own
-network access. The first-run check reports LG data collection settings but does
-not change them. This session does not protect against the TV firmware.
+The **Settings > Tor session > Install** button downloads the layer from a GitHub
+release, which needs the repo to be public. While this one is private, use the
+[manual install](docs/manual-tor-install.md). The layer is about 5.8 MB and
+checked against its SHA-256. Turn on the switch, start the desktop, and accept
+the first-run notices. **Test Tor** checks the connection. The switch resets
+after each session. The App Store stays off in Tor sessions, and apps that
+ignore the proxy cannot connect.
 
-Tor is included in the 1.2.0 release; its source changes are in [PR #1](https://github.com/patelthakkar/webos-linux-desktop/pull/1).
+Tor only covers the desktop. The TV firmware and LG services keep their own
+network access and can still see the screen. The first-run check reports LG
+data collection settings; it does not change them.
+
+Tor shipped in 1.2.0. The source changes are in [PR #1](https://github.com/patelthakkar/webos-linux-desktop/pull/1).
 
 ## Remote access
 
@@ -86,8 +89,8 @@ npm test
 npm run package
 ```
 
-The Tor layer build and release packaging scripts are in the 1.2.0 source branch
-linked above. The desktop shares the TV kernel; it is not a virtual machine.
+Build scripts for the experimental Tor layer are in PR #1. The desktop shares
+the TV kernel; it is not a virtual machine.
 
 ## License
 
