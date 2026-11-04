@@ -10,8 +10,7 @@ service.
 
 - Rooted LG TV with an ARM64 kernel, webOS 10.0 or newer, and SSH access.
 - About 350 MB free on `/var` and a USB or Bluetooth keyboard and mouse.
-- A computer with `ssh`, `scp`, the GitHub CLI, and the webOS CLI configured for
-  your TV. Sign in with `gh auth login` using an account with repo access.
+- A computer with `ssh`, `scp`, and the webOS CLI configured for your TV.
 
 Tested on webOS 10.3.1 with 1.7 GB of RAM. No audio or GPU acceleration.
 
@@ -20,9 +19,8 @@ Tested on webOS 10.3.1 with 1.7 GB of RAM. No audio or GPU acceleration.
 1. Download the runtime and launcher from [version 1.2.0](https://github.com/patelthakkar/webos-linux-desktop/releases/tag/v1.2.0):
 
    ```sh
-   gh release download v1.2.0 --repo patelthakkar/webos-linux-desktop \
-     --pattern linux-desktop-runtime.tar \
-     --pattern io.github.patelthakkar.linuxdesktop_1.2.0_all.ipk
+   curl -fLO https://github.com/patelthakkar/webos-linux-desktop/releases/download/v1.2.0/linux-desktop-runtime.tar
+   curl -fLO https://github.com/patelthakkar/webos-linux-desktop/releases/download/v1.2.0/io.github.patelthakkar.linuxdesktop_1.2.0_all.ipk
    ```
 
 2. Copy and unpack the runtime. Replace `YOUR_TV` with the TV's SSH address:
@@ -55,12 +53,11 @@ Files under `/home/desk` normally persist. Open Settings to change the next star
 The Tor session is experimental and may change between releases.
 
 The **Settings > Tor session > Install** button downloads the layer from a GitHub
-release, which needs the repo to be public. While this one is private, use the
-[manual install](docs/manual-tor-install.md). The layer is about 5.8 MB and
-checked against its SHA-256. Turn on the switch, start the desktop, and accept
-the first-run notices. **Test Tor** checks the connection. The switch resets
-after each session. The App Store stays off in Tor sessions, and apps that
-ignore the proxy cannot connect.
+release. If it fails, [install the layer manually](docs/manual-tor-install.md).
+The layer is about 5.8 MB and checked against its SHA-256. Turn on the switch,
+start the desktop, and accept the first-run notices. **Test Tor** checks the
+connection. The switch resets after each session. The App Store stays off in Tor
+sessions, and apps that ignore the proxy cannot connect.
 
 Tor only covers the desktop. The TV firmware and LG services keep their own
 network access and can still see the screen. The first-run check reports LG
