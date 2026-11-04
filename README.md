@@ -2,7 +2,7 @@
 
 An Alpine Linux XFCE desktop for rooted LG webOS TVs. Includes a terminal,
 file manager, text editor, and a small App Store. Starts on demand, with no boot
-service.
+service. Official Homebrew submission pending.
 
 ![Linux Desktop launcher](docs/launcher.png)
 
